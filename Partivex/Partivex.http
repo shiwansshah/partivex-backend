@@ -1,0 +1,6 @@
+@Partivex_HostAddress = http://localhost:5204
+
+GET {{Partivex_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="Partivex.Application/Partivex.Application.csproj" />
+  <Project Path="Partivex.Domain/Partivex.Domain.csproj" />
+  <Project Path="Partivex.Infrastructure/Partivex.Infrastructure.csproj" />
+  <Project Path="Partivex/Partivex.csproj" />
+</Solution>
