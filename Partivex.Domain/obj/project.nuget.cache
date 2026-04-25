@@ -1,17 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "NA5ektWwdMM=",
+  "dgSpecHash": "MaevLor8XTA=",
   "success": true,
-  "projectFilePath": "D:\\AppDevCW\\Sem2\\Partivex\\Partivex.Domain\\Partivex.Domain.csproj",
-  "expectedPackageFiles": [
-    "C:\\Users\\Acer\\.nuget\\packages\\microsoft.aspnetcore.authentication.jwtbearer\\10.0.5\\microsoft.aspnetcore.authentication.jwtbearer.10.0.5.nupkg.sha512",
-    "C:\\Users\\Acer\\.nuget\\packages\\microsoft.identitymodel.abstractions\\8.0.1\\microsoft.identitymodel.abstractions.8.0.1.nupkg.sha512",
-    "C:\\Users\\Acer\\.nuget\\packages\\microsoft.identitymodel.jsonwebtokens\\8.0.1\\microsoft.identitymodel.jsonwebtokens.8.0.1.nupkg.sha512",
-    "C:\\Users\\Acer\\.nuget\\packages\\microsoft.identitymodel.logging\\8.0.1\\microsoft.identitymodel.logging.8.0.1.nupkg.sha512",
-    "C:\\Users\\Acer\\.nuget\\packages\\microsoft.identitymodel.protocols\\8.0.1\\microsoft.identitymodel.protocols.8.0.1.nupkg.sha512",
-    "C:\\Users\\Acer\\.nuget\\packages\\microsoft.identitymodel.protocols.openidconnect\\8.0.1\\microsoft.identitymodel.protocols.openidconnect.8.0.1.nupkg.sha512",
-    "C:\\Users\\Acer\\.nuget\\packages\\microsoft.identitymodel.tokens\\8.0.1\\microsoft.identitymodel.tokens.8.0.1.nupkg.sha512",
-    "C:\\Users\\Acer\\.nuget\\packages\\system.identitymodel.tokens.jwt\\8.0.1\\system.identitymodel.tokens.jwt.8.0.1.nupkg.sha512"
-  ],
+  "projectFilePath": "D:\\AppDevCW\\Sem2\\partivex-backend\\Partivex.Domain\\Partivex.Domain.csproj",
+  "expectedPackageFiles": [],
   "logs": []
 }
