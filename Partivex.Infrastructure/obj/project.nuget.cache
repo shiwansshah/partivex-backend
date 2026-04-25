@@ -1,17 +1,17 @@
 {
   "version": 2,
-  "dgSpecHash": "NsDdFUHpLac=",
-  "success": true,
+  "dgSpecHash": "mubLAg7BSlc=",
+  "success": false,
   "projectFilePath": "D:\\AppDevCW\\Sem2\\partivex-backend\\Partivex.Infrastructure\\Partivex.Infrastructure.csproj",
-  "expectedPackageFiles": [
-    "C:\\Users\\Acer\\.nuget\\packages\\microsoft.aspnetcore.authentication.jwtbearer\\10.0.7\\microsoft.aspnetcore.authentication.jwtbearer.10.0.7.nupkg.sha512",
-    "C:\\Users\\Acer\\.nuget\\packages\\microsoft.identitymodel.abstractions\\8.0.1\\microsoft.identitymodel.abstractions.8.0.1.nupkg.sha512",
-    "C:\\Users\\Acer\\.nuget\\packages\\microsoft.identitymodel.jsonwebtokens\\8.0.1\\microsoft.identitymodel.jsonwebtokens.8.0.1.nupkg.sha512",
-    "C:\\Users\\Acer\\.nuget\\packages\\microsoft.identitymodel.logging\\8.0.1\\microsoft.identitymodel.logging.8.0.1.nupkg.sha512",
-    "C:\\Users\\Acer\\.nuget\\packages\\microsoft.identitymodel.protocols\\8.0.1\\microsoft.identitymodel.protocols.8.0.1.nupkg.sha512",
-    "C:\\Users\\Acer\\.nuget\\packages\\microsoft.identitymodel.protocols.openidconnect\\8.0.1\\microsoft.identitymodel.protocols.openidconnect.8.0.1.nupkg.sha512",
-    "C:\\Users\\Acer\\.nuget\\packages\\microsoft.identitymodel.tokens\\8.0.1\\microsoft.identitymodel.tokens.8.0.1.nupkg.sha512",
-    "C:\\Users\\Acer\\.nuget\\packages\\system.identitymodel.tokens.jwt\\8.0.1\\system.identitymodel.tokens.jwt.8.0.1.nupkg.sha512"
-  ],
-  "logs": []
+  "expectedPackageFiles": [],
+  "logs": [
+    {
+      "code": "NU1301",
+      "level": "Error",
+      "message": "Unable to load the service index for source https://api.nuget.org/v3/index.json.\r\n  An attempt was made to access a socket in a way forbidden by its access permissions. (api.nuget.org:443)\r\n  An attempt was made to access a socket in a way forbidden by its access permissions.",
+      "projectPath": "D:\\AppDevCW\\Sem2\\partivex-backend\\Partivex.Infrastructure\\Partivex.Infrastructure.csproj",
+      "filePath": "D:\\AppDevCW\\Sem2\\partivex-backend\\Partivex.Infrastructure\\Partivex.Infrastructure.csproj",
+      "targetGraphs": []
+    }
+  ]
 }

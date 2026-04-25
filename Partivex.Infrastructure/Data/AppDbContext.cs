@@ -1,14 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Partivex.Domain.Entities;
 
-namespace Partivex.Infrastructure.Data
+namespace Partivex.Infrastructure.Data;
+
+public class AppDbContext : IdentityDbContext<ApplicationUser>
 {
-    public class AppDbContext:IdentityDbContext<ApplicationUser>
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options)
-    : base(options)
-        {
-        }
     }
 }
