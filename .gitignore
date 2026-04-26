@@ -1,1 +1,9 @@
 .vs/ 
+bin/
+obj/
+.idea/
+
+# Optional (recommended)
+*.dll
+*.pdb
+*.deps.json
