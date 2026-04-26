@@ -8,7 +8,7 @@ using Partivex.Application.Interfaces;
 namespace Partivex.Controllers;
 
 [ApiController]
-[Route("")]
+[Route("/api/auth")]
 public class AuthController : ControllerBase
 {
     private const string AdminRole = "Admin";
