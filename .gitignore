@@ -1,1 +1,8 @@
-.vs/ 
+.vs/
+
+# Build output
+bin/
+obj/
+
+# User-specific IDE files
+*.user
