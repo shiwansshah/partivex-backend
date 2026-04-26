@@ -58,7 +58,12 @@ public class AuthController : ControllerBase
             return ToValidationProblem(result);
         }
 
-        await _userManager.AddToRoleAsync(user, CustomerRole);
+        var roleResult = await _userManager.AddToRoleAsync(user, CustomerRole);
+        if (!roleResult.Succeeded)
+        {
+            await _userManager.DeleteAsync(user);
+            return ToValidationProblem(roleResult);
+        }
 
         var token = _jwtService.GenerateToken(user, [CustomerRole]);
         return Ok(new AuthResponse(token));
@@ -119,7 +124,12 @@ public class AuthController : ControllerBase
             return ToValidationProblem(result);
         }
 
-        await _userManager.AddToRoleAsync(user, role);
+        var roleResult = await _userManager.AddToRoleAsync(user, role);
+        if (!roleResult.Succeeded)
+        {
+            await _userManager.DeleteAsync(user);
+            return ToValidationProblem(roleResult);
+        }
 
         return Ok(new UserCreatedResponse(user.Id, user.Email!, role));
     }
