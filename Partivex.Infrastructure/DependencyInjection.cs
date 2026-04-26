@@ -9,6 +9,7 @@ using Partivex.Application.Interfaces;
 using Partivex.Domain.Entities;
 using Partivex.Infrastructure.Authentication;
 using Partivex.Infrastructure.Data;
+using Partivex.Infrastructure.Repositories;
 
 namespace Partivex.Infrastructure;
 
@@ -69,6 +70,8 @@ public static class DependencyInjection
 
         services.AddAuthorization();
         services.AddScoped<IJwtService, JwtService>();
+        services.AddScoped<ICustomerRepository, CustomerRepository>();
+        services.AddScoped<IVehicleRepository, VehicleRepository>();
 
         return services;
     }
