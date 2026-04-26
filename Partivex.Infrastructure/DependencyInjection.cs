@@ -70,6 +70,7 @@ public static class DependencyInjection
 
         services.AddAuthorization();
         services.AddScoped<IJwtService, JwtService>();
+        services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ICustomerRepository, CustomerRepository>();
         services.AddScoped<IVehicleRepository, VehicleRepository>();
 

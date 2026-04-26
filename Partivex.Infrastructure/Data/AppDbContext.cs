@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Partivex.Domain.Entities;
@@ -18,8 +19,13 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     {
         base.OnModelCreating(builder);
 
+        builder.Entity<ApplicationUser>().ToTable("Customers");
+        builder.Entity<IdentityUserRole<string>>().ToTable("UserRoles");
+
         builder.Entity<Customer>(entity =>
         {
+            entity.ToTable("CustomerRecords");
+
             entity.HasKey(customer => customer.Id);
 
             entity.Property(customer => customer.FullName)
