@@ -1,0 +1,16 @@
+D:\AppDevCW\Sem2\partivex-backend\Partivex.Application\bin\Debug\net10.0\Partivex.Application.deps.json
+D:\AppDevCW\Sem2\partivex-backend\Partivex.Application\bin\Debug\net10.0\Partivex.Application.dll
+D:\AppDevCW\Sem2\partivex-backend\Partivex.Application\bin\Debug\net10.0\Partivex.Application.pdb
+D:\AppDevCW\Sem2\partivex-backend\Partivex.Application\bin\Debug\net10.0\Partivex.Domain.dll
+D:\AppDevCW\Sem2\partivex-backend\Partivex.Application\bin\Debug\net10.0\Partivex.Domain.pdb
+D:\AppDevCW\Sem2\partivex-backend\Partivex.Application\obj\Debug\net10.0\Partivex.Application.csproj.AssemblyReference.cache
+D:\AppDevCW\Sem2\partivex-backend\Partivex.Application\obj\Debug\net10.0\Partivex.Application.GeneratedMSBuildEditorConfig.editorconfig
+D:\AppDevCW\Sem2\partivex-backend\Partivex.Application\obj\Debug\net10.0\Partivex.Application.AssemblyInfoInputs.cache
+D:\AppDevCW\Sem2\partivex-backend\Partivex.Application\obj\Debug\net10.0\Partivex.Application.AssemblyInfo.cs
+D:\AppDevCW\Sem2\partivex-backend\Partivex.Application\obj\Debug\net10.0\Partivex.Application.csproj.CoreCompileInputs.cache
+D:\AppDevCW\Sem2\partivex-backend\Partivex.Application\obj\Debug\net10.0\Partivex.Application.sourcelink.json
+D:\AppDevCW\Sem2\partivex-backend\Partivex.Application\obj\Debug\net10.0\Partivex.FB086E31.Up2Date
+D:\AppDevCW\Sem2\partivex-backend\Partivex.Application\obj\Debug\net10.0\Partivex.Application.dll
+D:\AppDevCW\Sem2\partivex-backend\Partivex.Application\obj\Debug\net10.0\refint\Partivex.Application.dll
+D:\AppDevCW\Sem2\partivex-backend\Partivex.Application\obj\Debug\net10.0\Partivex.Application.pdb
+D:\AppDevCW\Sem2\partivex-backend\Partivex.Application\obj\Debug\net10.0\ref\Partivex.Application.dll
