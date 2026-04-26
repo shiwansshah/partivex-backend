@@ -126,7 +126,7 @@ namespace Partivex.Infrastructure.Migrations
 
                 b.HasIndex("RoleId");
 
-                b.ToTable("AspNetUserRoles", (string)null);
+                b.ToTable("UserRoles", (string)null);
             });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
@@ -213,7 +213,7 @@ namespace Partivex.Infrastructure.Migrations
                     .IsUnique()
                     .HasDatabaseName("UserNameIndex");
 
-                b.ToTable("AspNetUsers", (string)null);
+                b.ToTable("Customers", (string)null);
             });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
