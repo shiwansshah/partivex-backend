@@ -24,6 +24,7 @@ public sealed class JwtService : IJwtService
             new(JwtRegisteredClaimNames.Sub, user.Id),
             new(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
             new(ClaimTypes.NameIdentifier, user.Id),
+            new(ClaimTypes.Name, user.FullName),
             new(ClaimTypes.Email, user.Email ?? string.Empty)
         };
 
