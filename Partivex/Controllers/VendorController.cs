@@ -1,12 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 
-namespace Partivex.Controllers
+namespace Partivex.Controllers;
+
+[ApiController]
+[Route("api/vendor")]
+public class VendorController : ControllerBase
 {
-    public class VendorController : Controller
+    [HttpGet]
+    public IActionResult GetVendorModuleStatus()
     {
-        public IActionResult Index()
-        {
-            return View();
-        }
+        return Ok("Vendor Management API Working");
     }
 }
