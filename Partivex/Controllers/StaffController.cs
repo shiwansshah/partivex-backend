@@ -22,7 +22,11 @@ public sealed class StaffController : ControllerBase // Defines staff controller
 
     [HttpPost] // Handles staff creation.
     [Authorize(Roles = AdminRole)] // Restricts create to admin.
-    public async Task<ActionResult<StaffDto>> CreateStaff(CreateStaffDto dto) // Creates staff endpoint.
+    [ProducesResponseType(typeof(StaffDto), StatusCodes.Status201Created)] // Documents created response.
+    [ProducesResponseType(StatusCodes.Status400BadRequest)] // Documents bad request.
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)] // Documents missing auth.
+    [ProducesResponseType(StatusCodes.Status403Forbidden)] // Documents denied role.
+    public async Task<ActionResult<StaffDto>> CreateStaff([FromBody] CreateStaffDto dto) // Creates staff endpoint.
     {
         try // Handles service outcomes.
         {
@@ -38,6 +42,9 @@ public sealed class StaffController : ControllerBase // Defines staff controller
 
     [HttpGet] // Handles staff listing.
     [Authorize(Roles = ReadRoles)] // Allows admin and staff.
+    [ProducesResponseType(typeof(IEnumerable<StaffDto>), StatusCodes.Status200OK)] // Documents success response.
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)] // Documents missing auth.
+    [ProducesResponseType(StatusCodes.Status403Forbidden)] // Documents denied role.
     public async Task<ActionResult<IEnumerable<StaffDto>>> GetAllStaff() // Lists staff endpoint.
     {
         var staff = await _staffService.GetAllStaffAsync(); // Gets staff users.
@@ -47,7 +54,11 @@ public sealed class StaffController : ControllerBase // Defines staff controller
 
     [HttpGet("{id}")] // Handles staff lookup.
     [Authorize(Roles = ReadRoles)] // Allows admin and staff.
-    public async Task<ActionResult<StaffDto>> GetStaffById(string id) // Gets staff endpoint.
+    [ProducesResponseType(typeof(StaffDto), StatusCodes.Status200OK)] // Documents success response.
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)] // Documents missing auth.
+    [ProducesResponseType(StatusCodes.Status403Forbidden)] // Documents denied role.
+    [ProducesResponseType(StatusCodes.Status404NotFound)] // Documents missing staff.
+    public async Task<ActionResult<StaffDto>> GetStaffById([FromRoute] string id) // Gets staff endpoint.
     {
         try // Handles service outcomes.
         {
@@ -63,7 +74,12 @@ public sealed class StaffController : ControllerBase // Defines staff controller
 
     [HttpPut("{id}")] // Handles staff update.
     [Authorize(Roles = AdminRole)] // Restricts update to admin.
-    public async Task<IActionResult> UpdateStaff(string id, UpdateStaffDto dto) // Updates staff endpoint.
+    [ProducesResponseType(StatusCodes.Status204NoContent)] // Documents update success.
+    [ProducesResponseType(StatusCodes.Status400BadRequest)] // Documents bad request.
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)] // Documents missing auth.
+    [ProducesResponseType(StatusCodes.Status403Forbidden)] // Documents denied role.
+    [ProducesResponseType(StatusCodes.Status404NotFound)] // Documents missing staff.
+    public async Task<IActionResult> UpdateStaff([FromRoute] string id, [FromBody] UpdateStaffDto dto) // Updates staff endpoint.
     {
         try // Handles service outcomes.
         {
@@ -83,7 +99,12 @@ public sealed class StaffController : ControllerBase // Defines staff controller
 
     [HttpDelete("{id}")] // Handles staff deletion.
     [Authorize(Roles = AdminRole)] // Restricts delete to admin.
-    public async Task<IActionResult> DeleteStaff(string id) // Deletes staff endpoint.
+    [ProducesResponseType(StatusCodes.Status204NoContent)] // Documents delete success.
+    [ProducesResponseType(StatusCodes.Status400BadRequest)] // Documents bad request.
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)] // Documents missing auth.
+    [ProducesResponseType(StatusCodes.Status403Forbidden)] // Documents denied role.
+    [ProducesResponseType(StatusCodes.Status404NotFound)] // Documents missing staff.
+    public async Task<IActionResult> DeleteStaff([FromRoute] string id) // Deletes staff endpoint.
     {
         try // Handles service outcomes.
         {

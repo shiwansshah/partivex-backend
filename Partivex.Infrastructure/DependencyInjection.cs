@@ -1,3 +1,4 @@
+using System.Security.Claims; // Imports claim type constants.
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -65,6 +66,8 @@ public static class DependencyInjection
                     ValidIssuer = jwtOptions.Issuer,
                     ValidAudience = jwtOptions.Audience,
                     IssuerSigningKey = signingKey,
+                    RoleClaimType = ClaimTypes.Role, // Maps role claims.
+                    NameClaimType = ClaimTypes.NameIdentifier, // Maps user id claim.
                     ClockSkew = TimeSpan.Zero
                 };
             });

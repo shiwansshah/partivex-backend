@@ -24,7 +24,11 @@ public sealed class StaffService : IStaffService // Implements staff service.
     {
         await EnsureStaffRoleExistsAsync(); // Validates staff role.
 
-        var existingUser = await _userManager.FindByEmailAsync(dto.Email); // Checks duplicate email.
+        var fullName = NormalizeRequired(dto.FullName, nameof(dto.FullName)); // Normalizes full name.
+
+        var email = NormalizeRequired(dto.Email, nameof(dto.Email)); // Normalizes email.
+
+        var existingUser = await _userManager.FindByEmailAsync(email); // Checks duplicate email.
 
         if (existingUser is not null) // Handles existing email.
         {
@@ -33,9 +37,9 @@ public sealed class StaffService : IStaffService // Implements staff service.
 
         var user = new ApplicationUser // Builds identity user.
         {
-            UserName = dto.Email, // Sets username.
-            Email = dto.Email, // Sets email.
-            FullName = dto.FullName // Sets full name.
+            UserName = email, // Sets username.
+            Email = email, // Sets email.
+            FullName = fullName // Sets full name.
         };
 
         var createResult = await _userManager.CreateAsync(user, dto.Password); // Creates identity user.
@@ -75,7 +79,7 @@ public sealed class StaffService : IStaffService // Implements staff service.
     {
         var user = await FindStaffUserAsync(id); // Loads staff user.
 
-        user.FullName = dto.FullName; // Updates full name.
+        user.FullName = NormalizeRequired(dto.FullName, nameof(dto.FullName)); // Updates full name.
 
         var result = await _userManager.UpdateAsync(user); // Persists user update.
 
@@ -133,6 +137,16 @@ public sealed class StaffService : IStaffService // Implements staff service.
             user.FullName, // Maps full name.
             user.Email ?? string.Empty, // Maps email safely.
             StaffRole); // Maps staff role.
+    }
+
+    private static string NormalizeRequired(string value, string fieldName) // Normalizes required text.
+    {
+        if (string.IsNullOrWhiteSpace(value)) // Checks blank value.
+        {
+            throw new InvalidOperationException($"{fieldName} is required."); // Stops invalid data.
+        }
+
+        return value.Trim(); // Returns trimmed value.
     }
 
     private static string ToErrorMessage(IdentityResult result) // Formats identity errors.
