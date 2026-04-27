@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity; // Imports Identity services.
+using Partivex.Application.Constants; // Imports role constants.
 using Partivex.Application.DTOs; // Imports staff DTOs.
 using Partivex.Application.Interfaces; // Imports service contract.
 using Partivex.Domain.Entities; // Imports application user.
@@ -7,8 +8,6 @@ namespace Partivex.Infrastructure.Services; // Defines service namespace.
 
 public sealed class StaffService : IStaffService // Implements staff service.
 {
-    private const string StaffRole = "Staff"; // Defines staff role.
-
     private readonly UserManager<ApplicationUser> _userManager; // Stores user manager.
     private readonly RoleManager<IdentityRole> _roleManager; // Stores role manager.
 
@@ -49,7 +48,7 @@ public sealed class StaffService : IStaffService // Implements staff service.
             throw new InvalidOperationException(ToErrorMessage(createResult)); // Reports identity errors.
         }
 
-        var roleResult = await _userManager.AddToRoleAsync(user, StaffRole); // Assigns staff role.
+        var roleResult = await _userManager.AddToRoleAsync(user, ApplicationRoles.Staff); // Assigns staff role.
 
         if (!roleResult.Succeeded) // Handles role failure.
         {
@@ -63,7 +62,7 @@ public sealed class StaffService : IStaffService // Implements staff service.
 
     public async Task<IEnumerable<StaffDto>> GetAllStaffAsync() // Gets all staff users.
     {
-        var users = await _userManager.GetUsersInRoleAsync(StaffRole); // Loads staff users.
+        var users = await _userManager.GetUsersInRoleAsync(ApplicationRoles.Staff); // Loads staff users.
 
         return users.Select(MapToStaffDto); // Maps users to DTOs.
     }
@@ -103,7 +102,7 @@ public sealed class StaffService : IStaffService // Implements staff service.
 
     private async Task EnsureStaffRoleExistsAsync() // Validates role exists.
     {
-        var exists = await _roleManager.RoleExistsAsync(StaffRole); // Checks role store.
+        var exists = await _roleManager.RoleExistsAsync(ApplicationRoles.Staff); // Checks role store.
 
         if (!exists) // Handles missing role.
         {
@@ -120,7 +119,7 @@ public sealed class StaffService : IStaffService // Implements staff service.
             throw new KeyNotFoundException("Staff user was not found."); // Stops missing user.
         }
 
-        var isStaff = await _userManager.IsInRoleAsync(user, StaffRole); // Checks staff role.
+        var isStaff = await _userManager.IsInRoleAsync(user, ApplicationRoles.Staff); // Checks staff role.
 
         if (!isStaff) // Handles non-staff user.
         {
@@ -136,7 +135,7 @@ public sealed class StaffService : IStaffService // Implements staff service.
             user.Id, // Maps user id.
             user.FullName, // Maps full name.
             user.Email ?? string.Empty, // Maps email safely.
-            StaffRole); // Maps staff role.
+            ApplicationRoles.Staff); // Maps staff role.
     }
 
     private static string NormalizeRequired(string value, string fieldName) // Normalizes required text.

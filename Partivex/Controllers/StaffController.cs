@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization; // Imports authorization attributes.
 using Microsoft.AspNetCore.Mvc; // Imports MVC controller types.
+using Partivex.Application.Constants; // Imports role constants.
 using Partivex.Application.DTOs; // Imports staff DTOs.
 using Partivex.Application.Interfaces; // Imports staff service contract.
 
@@ -9,10 +10,6 @@ namespace Partivex.Controllers; // Defines API namespace.
 [Route("api/staff")] // Sets staff route.
 public sealed class StaffController : ControllerBase // Defines staff controller.
 {
-    private const string AdminRole = "Admin"; // Defines admin role.
-    private const string StaffRole = "Staff"; // Defines staff role.
-    private const string ReadRoles = AdminRole + "," + StaffRole; // Defines read roles.
-
     private readonly IStaffService _staffService; // Stores staff service.
 
     public StaffController(IStaffService staffService) // Defines constructor.
@@ -21,9 +18,9 @@ public sealed class StaffController : ControllerBase // Defines staff controller
     }
 
     [HttpPost] // Handles staff creation.
-    [Authorize(Roles = AdminRole)] // Restricts create to admin.
+    [Authorize(Roles = ApplicationRoles.Admin)] // Restricts create to admin.
     [ProducesResponseType(typeof(StaffDto), StatusCodes.Status201Created)] // Documents created response.
-    [ProducesResponseType(StatusCodes.Status400BadRequest)] // Documents bad request.
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)] // Documents bad request.
     [ProducesResponseType(StatusCodes.Status401Unauthorized)] // Documents missing auth.
     [ProducesResponseType(StatusCodes.Status403Forbidden)] // Documents denied role.
     public async Task<ActionResult<StaffDto>> CreateStaff([FromBody] CreateStaffDto dto) // Creates staff endpoint.
@@ -36,12 +33,12 @@ public sealed class StaffController : ControllerBase // Defines staff controller
         }
         catch (InvalidOperationException exception) // Handles validation errors.
         {
-            return BadRequest(new { Error = exception.Message }); // Returns bad request.
+            return BadRequest(new ApiErrorResponse(exception.Message)); // Returns bad request.
         }
     }
 
     [HttpGet] // Handles staff listing.
-    [Authorize(Roles = ReadRoles)] // Allows admin and staff.
+    [Authorize(Roles = ApplicationRoles.AdminAndStaff)] // Allows admin and staff.
     [ProducesResponseType(typeof(IEnumerable<StaffDto>), StatusCodes.Status200OK)] // Documents success response.
     [ProducesResponseType(StatusCodes.Status401Unauthorized)] // Documents missing auth.
     [ProducesResponseType(StatusCodes.Status403Forbidden)] // Documents denied role.
@@ -53,11 +50,11 @@ public sealed class StaffController : ControllerBase // Defines staff controller
     }
 
     [HttpGet("{id}")] // Handles staff lookup.
-    [Authorize(Roles = ReadRoles)] // Allows admin and staff.
+    [Authorize(Roles = ApplicationRoles.AdminAndStaff)] // Allows admin and staff.
     [ProducesResponseType(typeof(StaffDto), StatusCodes.Status200OK)] // Documents success response.
     [ProducesResponseType(StatusCodes.Status401Unauthorized)] // Documents missing auth.
     [ProducesResponseType(StatusCodes.Status403Forbidden)] // Documents denied role.
-    [ProducesResponseType(StatusCodes.Status404NotFound)] // Documents missing staff.
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)] // Documents missing staff.
     public async Task<ActionResult<StaffDto>> GetStaffById([FromRoute] string id) // Gets staff endpoint.
     {
         try // Handles service outcomes.
@@ -68,17 +65,17 @@ public sealed class StaffController : ControllerBase // Defines staff controller
         }
         catch (KeyNotFoundException exception) // Handles missing staff.
         {
-            return NotFound(new { Error = exception.Message }); // Returns not found.
+            return NotFound(new ApiErrorResponse(exception.Message)); // Returns not found.
         }
     }
 
     [HttpPut("{id}")] // Handles staff update.
-    [Authorize(Roles = AdminRole)] // Restricts update to admin.
+    [Authorize(Roles = ApplicationRoles.Admin)] // Restricts update to admin.
     [ProducesResponseType(StatusCodes.Status204NoContent)] // Documents update success.
-    [ProducesResponseType(StatusCodes.Status400BadRequest)] // Documents bad request.
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)] // Documents bad request.
     [ProducesResponseType(StatusCodes.Status401Unauthorized)] // Documents missing auth.
     [ProducesResponseType(StatusCodes.Status403Forbidden)] // Documents denied role.
-    [ProducesResponseType(StatusCodes.Status404NotFound)] // Documents missing staff.
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)] // Documents missing staff.
     public async Task<IActionResult> UpdateStaff([FromRoute] string id, [FromBody] UpdateStaffDto dto) // Updates staff endpoint.
     {
         try // Handles service outcomes.
@@ -89,21 +86,21 @@ public sealed class StaffController : ControllerBase // Defines staff controller
         }
         catch (KeyNotFoundException exception) // Handles missing staff.
         {
-            return NotFound(new { Error = exception.Message }); // Returns not found.
+            return NotFound(new ApiErrorResponse(exception.Message)); // Returns not found.
         }
         catch (InvalidOperationException exception) // Handles validation errors.
         {
-            return BadRequest(new { Error = exception.Message }); // Returns bad request.
+            return BadRequest(new ApiErrorResponse(exception.Message)); // Returns bad request.
         }
     }
 
     [HttpDelete("{id}")] // Handles staff deletion.
-    [Authorize(Roles = AdminRole)] // Restricts delete to admin.
+    [Authorize(Roles = ApplicationRoles.Admin)] // Restricts delete to admin.
     [ProducesResponseType(StatusCodes.Status204NoContent)] // Documents delete success.
-    [ProducesResponseType(StatusCodes.Status400BadRequest)] // Documents bad request.
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)] // Documents bad request.
     [ProducesResponseType(StatusCodes.Status401Unauthorized)] // Documents missing auth.
     [ProducesResponseType(StatusCodes.Status403Forbidden)] // Documents denied role.
-    [ProducesResponseType(StatusCodes.Status404NotFound)] // Documents missing staff.
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)] // Documents missing staff.
     public async Task<IActionResult> DeleteStaff([FromRoute] string id) // Deletes staff endpoint.
     {
         try // Handles service outcomes.
@@ -114,11 +111,11 @@ public sealed class StaffController : ControllerBase // Defines staff controller
         }
         catch (KeyNotFoundException exception) // Handles missing staff.
         {
-            return NotFound(new { Error = exception.Message }); // Returns not found.
+            return NotFound(new ApiErrorResponse(exception.Message)); // Returns not found.
         }
         catch (InvalidOperationException exception) // Handles validation errors.
         {
-            return BadRequest(new { Error = exception.Message }); // Returns bad request.
+            return BadRequest(new ApiErrorResponse(exception.Message)); // Returns bad request.
         }
     }
 }
