@@ -216,6 +216,105 @@ namespace Partivex.Infrastructure.Migrations
                 b.ToTable("Customers", (string)null);
             });
 
+            modelBuilder.Entity("Partivex.Domain.Entities.InventoryItem", b =>
+            {
+                b.Property<int>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("integer")
+                    .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                b.Property<string>("Category")
+                    .IsRequired()
+                    .HasMaxLength(80)
+                    .HasColumnType("character varying(80)");
+
+                b.Property<string>("Name")
+                    .IsRequired()
+                    .HasMaxLength(120)
+                    .HasColumnType("character varying(120)");
+
+                b.Property<string>("PartNumber")
+                    .IsRequired()
+                    .HasMaxLength(40)
+                    .HasColumnType("character varying(40)");
+
+                b.Property<int>("QuantityInStock")
+                    .HasColumnType("integer");
+
+                b.Property<int>("ReorderLevel")
+                    .HasColumnType("integer");
+
+                b.Property<string>("StorageLocation")
+                    .IsRequired()
+                    .HasMaxLength(80)
+                    .HasColumnType("character varying(80)");
+
+                b.Property<decimal>("UnitCost")
+                    .HasPrecision(18, 2)
+                    .HasColumnType("numeric(18,2)");
+
+                b.Property<DateTimeOffset>("UpdatedAt")
+                    .HasColumnType("timestamp with time zone");
+
+                b.Property<string>("VendorName")
+                    .IsRequired()
+                    .HasMaxLength(120)
+                    .HasColumnType("character varying(120)");
+
+                b.HasKey("Id");
+
+                b.HasIndex("PartNumber")
+                    .IsUnique();
+
+                b.ToTable("InventoryItems", (string)null);
+            });
+
+            modelBuilder.Entity("Partivex.Domain.Entities.InventoryStockChange", b =>
+            {
+                b.Property<int>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("integer")
+                    .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                b.Property<DateTimeOffset>("ChangedAt")
+                    .HasColumnType("timestamp with time zone");
+
+                b.Property<string>("ChangedBy")
+                    .IsRequired()
+                    .HasMaxLength(120)
+                    .HasColumnType("character varying(120)");
+
+                b.Property<string>("ChangeType")
+                    .IsRequired()
+                    .HasMaxLength(40)
+                    .HasColumnType("character varying(40)");
+
+                b.Property<int>("InventoryItemId")
+                    .HasColumnType("integer");
+
+                b.Property<string>("Notes")
+                    .IsRequired()
+                    .HasMaxLength(240)
+                    .HasColumnType("character varying(240)");
+
+                b.Property<int>("QuantityAfterChange")
+                    .HasColumnType("integer");
+
+                b.Property<int>("QuantityChanged")
+                    .HasColumnType("integer");
+
+                b.Property<string>("ReferenceCode")
+                    .IsRequired()
+                    .HasMaxLength(40)
+                    .HasColumnType("character varying(40)");
+
+                b.HasKey("Id");
+
+                b.HasIndex("InventoryItemId");
+
+                b.ToTable("InventoryStockChanges", (string)null);
+            });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
             {
                 b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -265,6 +364,22 @@ namespace Partivex.Infrastructure.Migrations
                     .HasForeignKey("UserId")
                     .OnDelete(DeleteBehavior.Cascade)
                     .IsRequired();
+            });
+
+            modelBuilder.Entity("Partivex.Domain.Entities.InventoryStockChange", b =>
+            {
+                b.HasOne("Partivex.Domain.Entities.InventoryItem", "InventoryItem")
+                    .WithMany("StockChanges")
+                    .HasForeignKey("InventoryItemId")
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired();
+
+                b.Navigation("InventoryItem");
+            });
+
+            modelBuilder.Entity("Partivex.Domain.Entities.InventoryItem", b =>
+            {
+                b.Navigation("StockChanges");
             });
         }
     }
