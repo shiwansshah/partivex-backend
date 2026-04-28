@@ -73,10 +73,12 @@ public static class DependencyInjection
             });
 
         services.AddAuthorization();
+        services.AddHttpContextAccessor(); // Registers HTTP context accessor.
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IStaffService, StaffService>(); // Registers staff service.
         services.AddScoped<ICustomerService, CustomerService>(); // Registers customer service.
+        services.AddScoped<IVehicleService, VehicleService>(); // Registers vehicle service.
 
         return services;
     }

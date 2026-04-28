@@ -101,6 +101,7 @@ public sealed class CustomerService : ICustomerService // Implements customer se
     {
         return new VehicleDto( // Creates vehicle DTO.
             vehicle.Id, // Maps vehicle id.
+            NormalizeText(vehicle.CustomerId), // Maps customer id.
             NormalizeText(vehicle.VehicleNumber), // Maps vehicle number.
             NormalizeOptionalText(vehicle.Model)); // Maps vehicle model.
     }

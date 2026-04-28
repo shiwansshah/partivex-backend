@@ -18,6 +18,26 @@ public sealed record CustomerDto( // Defines customer list DTO.
 
 public sealed record VehicleDto( // Defines vehicle DTO.
     Guid Id, // Carries vehicle id.
+    [Required] // Requires customer id.
+    [StringLength(450)] // Limits customer id length.
+    string CustomerId, // Carries customer id.
+    [Required] // Requires vehicle number.
+    [StringLength(64)] // Limits vehicle number length.
+    string VehicleNumber, // Carries vehicle number.
+    [StringLength(128)] // Limits model length.
+    string? Model); // Carries optional vehicle model.
+
+public sealed record CreateVehicleDto( // Defines vehicle creation DTO.
+    [Required] // Requires customer id.
+    [StringLength(450)] // Limits customer id length.
+    string CustomerId, // Carries customer id.
+    [Required] // Requires vehicle number.
+    [StringLength(64)] // Limits vehicle number length.
+    string VehicleNumber, // Carries vehicle number.
+    [StringLength(128)] // Limits model length.
+    string? Model); // Carries optional vehicle model.
+
+public sealed record UpdateVehicleDto( // Defines vehicle update DTO.
     [Required] // Requires vehicle number.
     [StringLength(64)] // Limits vehicle number length.
     string VehicleNumber, // Carries vehicle number.

@@ -10,5 +10,7 @@ public static class ApplicationRoles // Defines application role names.
 
     public const string AdminAndStaff = Admin + "," + Staff; // Defines read roles.
 
+    public const string AdminStaffAndCustomer = Admin + "," + Staff + "," + Customer; // Defines vehicle roles.
+
     public static IReadOnlyCollection<string> All { get; } = [Admin, Staff, Customer]; // Defines seeded roles.
 }
