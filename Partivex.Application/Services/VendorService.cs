@@ -27,6 +27,8 @@ public sealed class VendorService : IVendorService
 
     public async Task<VendorResponseDto> CreateAsync(CreateVendorDto vendorDto)
     {
+        ValidateVendor(vendorDto.Name, vendorDto.ContactPerson, vendorDto.Email, vendorDto.Phone, vendorDto.Address);
+
         var vendor = new Vendor
         {
             Name = vendorDto.Name.Trim(),
@@ -44,6 +46,8 @@ public sealed class VendorService : IVendorService
 
     public async Task<VendorResponseDto?> UpdateAsync(int id, UpdateVendorDto vendorDto)
     {
+        ValidateVendor(vendorDto.Name, vendorDto.ContactPerson, vendorDto.Email, vendorDto.Phone, vendorDto.Address);
+
         var vendor = await _vendorRepository.GetByIdAsync(id);
         if (vendor is null)
         {
@@ -86,5 +90,22 @@ public sealed class VendorService : IVendorService
             IsActive = vendor.IsActive,
             CreatedAt = vendor.CreatedAt
         };
+    }
+
+    private static void ValidateVendor(
+        string name,
+        string contactPerson,
+        string email,
+        string phone,
+        string address)
+    {
+        if (string.IsNullOrWhiteSpace(name) ||
+            string.IsNullOrWhiteSpace(contactPerson) ||
+            string.IsNullOrWhiteSpace(email) ||
+            string.IsNullOrWhiteSpace(phone) ||
+            string.IsNullOrWhiteSpace(address))
+        {
+            throw new ArgumentException("Vendor name, contact person, email, phone, and address are required.");
+        }
     }
 }

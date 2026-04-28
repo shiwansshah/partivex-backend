@@ -216,6 +216,44 @@ namespace Partivex.Infrastructure.Migrations
                 b.ToTable("Customers", (string)null);
             });
 
+            modelBuilder.Entity("Partivex.Domain.Entities.Vendor", b =>
+            {
+                b.Property<int>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("integer")
+                    .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                b.Property<string>("Address")
+                    .IsRequired()
+                    .HasColumnType("text");
+
+                b.Property<string>("ContactPerson")
+                    .IsRequired()
+                    .HasColumnType("text");
+
+                b.Property<DateTime>("CreatedAt")
+                    .HasColumnType("timestamp with time zone");
+
+                b.Property<string>("Email")
+                    .IsRequired()
+                    .HasColumnType("text");
+
+                b.Property<bool>("IsActive")
+                    .HasColumnType("boolean");
+
+                b.Property<string>("Name")
+                    .IsRequired()
+                    .HasColumnType("text");
+
+                b.Property<string>("Phone")
+                    .IsRequired()
+                    .HasColumnType("text");
+
+                b.HasKey("Id");
+
+                b.ToTable("Vendors", (string)null);
+            });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
             {
                 b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
