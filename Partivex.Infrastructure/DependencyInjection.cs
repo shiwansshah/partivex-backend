@@ -76,6 +76,7 @@ public static class DependencyInjection
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IStaffService, StaffService>(); // Registers staff service.
+        services.AddScoped<ICustomerService, CustomerService>(); // Registers customer service.
 
         return services;
     }
