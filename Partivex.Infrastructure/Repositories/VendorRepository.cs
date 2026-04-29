@@ -18,6 +18,7 @@ public sealed class VendorRepository : IVendorRepository
     {
         return await _dbContext.Vendors
             .AsNoTracking()
+            .Where(vendor => vendor.IsActive)
             .OrderBy(vendor => vendor.Name)
             .ToListAsync();
     }
@@ -25,6 +26,15 @@ public sealed class VendorRepository : IVendorRepository
     public Task<Vendor?> GetByIdAsync(int id)
     {
         return _dbContext.Vendors.FirstOrDefaultAsync(vendor => vendor.Id == id);
+    }
+
+    public Task<bool> EmailExistsAsync(string email, int? excludedVendorId = null)
+    {
+        var normalizedEmail = email.Trim().ToUpper();
+
+        return _dbContext.Vendors.AnyAsync(vendor =>
+            vendor.Email.ToUpper() == normalizedEmail &&
+            (!excludedVendorId.HasValue || vendor.Id != excludedVendorId.Value));
     }
 
     public async Task<Vendor> AddAsync(Vendor vendor)
@@ -42,7 +52,7 @@ public sealed class VendorRepository : IVendorRepository
 
     public async Task DeleteAsync(Vendor vendor)
     {
-        _dbContext.Vendors.Remove(vendor);
+        vendor.IsActive = false;
         await _dbContext.SaveChangesAsync();
     }
 }

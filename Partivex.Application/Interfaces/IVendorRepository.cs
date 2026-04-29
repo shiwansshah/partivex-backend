@@ -8,6 +8,8 @@ public interface IVendorRepository
 
     Task<Vendor?> GetByIdAsync(int id);
 
+    Task<bool> EmailExistsAsync(string email, int? excludedVendorId = null);
+
     Task<Vendor> AddAsync(Vendor vendor);
 
     Task UpdateAsync(Vendor vendor);

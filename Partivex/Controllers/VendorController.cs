@@ -26,7 +26,7 @@ public class VendorController : ControllerBase
     public async Task<ActionResult<VendorResponseDto>> GetVendorById(int id)
     {
         var vendor = await _vendorService.GetByIdAsync(id);
-        if (vendor is null)
+        if (vendor is null || !vendor.IsActive)
         {
             return NotFound();
         }

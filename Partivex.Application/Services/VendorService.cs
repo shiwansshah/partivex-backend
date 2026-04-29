@@ -1,6 +1,7 @@
 using Partivex.Application.DTOs;
 using Partivex.Application.Interfaces;
 using Partivex.Domain.Entities;
+using System.Text.RegularExpressions;
 
 namespace Partivex.Application.Services;
 
@@ -28,6 +29,10 @@ public sealed class VendorService : IVendorService
     public async Task<VendorResponseDto> CreateAsync(CreateVendorDto vendorDto)
     {
         ValidateVendor(vendorDto.Name, vendorDto.ContactPerson, vendorDto.Email, vendorDto.Phone, vendorDto.Address);
+        if (await _vendorRepository.EmailExistsAsync(vendorDto.Email))
+        {
+            throw new ArgumentException("A vendor with this email already exists.");
+        }
 
         var vendor = new Vendor
         {
@@ -47,9 +52,13 @@ public sealed class VendorService : IVendorService
     public async Task<VendorResponseDto?> UpdateAsync(int id, UpdateVendorDto vendorDto)
     {
         ValidateVendor(vendorDto.Name, vendorDto.ContactPerson, vendorDto.Email, vendorDto.Phone, vendorDto.Address);
+        if (await _vendorRepository.EmailExistsAsync(vendorDto.Email, id))
+        {
+            throw new ArgumentException("A vendor with this email already exists.");
+        }
 
         var vendor = await _vendorRepository.GetByIdAsync(id);
-        if (vendor is null)
+        if (vendor is null || !vendor.IsActive)
         {
             return null;
         }
@@ -68,7 +77,7 @@ public sealed class VendorService : IVendorService
     public async Task<bool> DeleteAsync(int id)
     {
         var vendor = await _vendorRepository.GetByIdAsync(id);
-        if (vendor is null)
+        if (vendor is null || !vendor.IsActive)
         {
             return false;
         }
@@ -106,6 +115,16 @@ public sealed class VendorService : IVendorService
             string.IsNullOrWhiteSpace(address))
         {
             throw new ArgumentException("Vendor name, contact person, email, phone, and address are required.");
+        }
+
+        if (!Regex.IsMatch(email.Trim(), @"^[^\s@]+@[^\s@]+\.[^\s@]+$"))
+        {
+            throw new ArgumentException("Enter a valid vendor email address.");
+        }
+
+        if (!Regex.IsMatch(phone.Trim(), @"^[0-9+\-\s()]{7,20}$"))
+        {
+            throw new ArgumentException("Enter a valid vendor phone number.");
         }
     }
 }
