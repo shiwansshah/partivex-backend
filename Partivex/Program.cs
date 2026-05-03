@@ -3,6 +3,7 @@ using Partivex.Application;
 using Partivex.Infrastructure;
 using Partivex.Infrastructure.Data;
 using Partivex.Infrastructure.Identity;
+using Partivex.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,10 +38,13 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
