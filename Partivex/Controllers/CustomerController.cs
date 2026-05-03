@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Partivex.Application.Constants;
 using Partivex.Application.DTOs;
 using Partivex.Application.Interfaces;
 
@@ -8,7 +9,7 @@ namespace Partivex.Controllers;
 
 [ApiController]
 [Route("api/customer")]
-[Authorize(Roles = "Customer")]
+[Authorize(Roles = ApplicationRoles.Customer)]
 public class CustomerController : ControllerBase
 {
     private readonly IUserRepository _userRepository;

@@ -13,6 +13,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
 
+    public DbSet<CustomerHistory> CustomerHistories { get; set; } = null!; // Stores history rows.
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -33,5 +35,23 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                 .HasForeignKey(v => v.CustomerId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+
+        builder.Entity<CustomerHistory>(entity => // Configures history entity.
+        { // Begins history configuration.
+            entity.ToTable("CustomerHistories"); // Maps history table.
+
+            entity.HasKey(history => history.Id); // Configures primary key.
+
+            entity.Property(history => history.CustomerId).IsRequired(); // Requires customer id.
+
+            entity.Property(history => history.Description).IsRequired(); // Requires description.
+
+            entity.Property(history => history.CreatedAt).IsRequired(); // Requires creation timestamp.
+
+            entity.HasOne<ApplicationUser>() // Configures customer relation.
+                .WithMany() // Uses no navigation collection.
+                .HasForeignKey(history => history.CustomerId) // Uses customer id FK.
+                .OnDelete(DeleteBehavior.Cascade); // Deletes history with customer.
+        }); // Ends history configuration.
     }
 }

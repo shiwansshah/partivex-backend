@@ -1,13 +1,12 @@
 using Partivex.Application.DTOs;
 using Partivex.Application.Interfaces;
+using Partivex.Application.Constants; // Imports role constants.
 using Partivex.Domain.Entities;
 
 namespace Partivex.Application.Services;
 
 public sealed class AuthService : IAuthService
 {
-    private const string CustomerRole = "Customer";
-
     private readonly IUserRepository _userRepository;
     private readonly IJwtService _jwtService;
 
@@ -41,14 +40,14 @@ public sealed class AuthService : IAuthService
             return AuthResult<AuthResponse>.Failed(errors);
         }
 
-        var roleErrors = await _userRepository.AddToRoleAsync(user, CustomerRole);
+        var roleErrors = await _userRepository.AddToRoleAsync(user, ApplicationRoles.Customer);
         if (roleErrors.Count > 0)
         {
             await _userRepository.DeleteAsync(user);
             return AuthResult<AuthResponse>.Failed(roleErrors);
         }
 
-        var token = _jwtService.GenerateToken(user, [CustomerRole]);
+        var token = _jwtService.GenerateToken(user, [ApplicationRoles.Customer]);
         return AuthResult<AuthResponse>.Success(new AuthResponse(token));
     }
 

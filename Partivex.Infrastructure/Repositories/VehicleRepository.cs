@@ -38,4 +38,10 @@ public sealed class VehicleRepository : IVehicleRepository
         _context.Vehicles.Update(vehicle);
         await _context.SaveChangesAsync();
     }
+
+    public async Task DeleteAsync(Vehicle vehicle)
+    {
+        _context.Vehicles.Remove(vehicle);
+        await _context.SaveChangesAsync();
+    }
 }

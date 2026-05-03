@@ -1,3 +1,4 @@
+using System.Security.Claims; // Imports claim type constants.
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -65,15 +66,20 @@ public static class DependencyInjection
                     ValidIssuer = jwtOptions.Issuer,
                     ValidAudience = jwtOptions.Audience,
                     IssuerSigningKey = signingKey,
+                    RoleClaimType = ClaimTypes.Role, // Maps role claims.
+                    NameClaimType = ClaimTypes.NameIdentifier, // Maps user id claim.
                     ClockSkew = TimeSpan.Zero
                 };
             });
 
         services.AddAuthorization();
+        services.AddHttpContextAccessor(); // Registers HTTP context accessor.
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IVehicleRepository, VehicleRepository>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
+        services.AddScoped<IStaffService, StaffService>(); // Registers staff service.
+        services.AddScoped<ICustomerService, CustomerService>(); // Registers customer service.
 
         return services;
     }

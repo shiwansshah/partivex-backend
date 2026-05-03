@@ -10,4 +10,12 @@ public interface IVehicleService
     Task<VehicleDto> AddVehicleAsync(string customerId, CreateVehicleDto dto, IFormFile? image);
 
     Task<VehicleDto> UpdateVehicleAsync(Guid id, string customerId, UpdateVehicleDto dto, IFormFile? image);
+
+    Task<VehicleDto> CreateVehicleAsync(CreateVehicleDto dto);
+
+    Task<IEnumerable<VehicleDto>> GetVehiclesByCustomerAsync(string customerId);
+
+    Task<VehicleDto> UpdateVehicleAsync(Guid id, UpdateVehicleDto dto);
+
+    Task DeleteVehicleAsync(Guid id);
 }
