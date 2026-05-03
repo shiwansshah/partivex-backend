@@ -22,6 +22,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<ApplicationUser>().ToTable("Customers");
         builder.Entity<IdentityUserRole<string>>().ToTable("UserRoles");
 
+        builder.Entity<ApplicationUser>()
+            .HasIndex(user => user.PhoneNumber)
+            .IsUnique();
+
         builder.Entity<Vehicle>(entity =>
         {
             entity.ToTable("Vehicles");

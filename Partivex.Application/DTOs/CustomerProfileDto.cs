@@ -6,3 +6,8 @@ public sealed record CustomerProfileDto(
     string Email,
     string? PhoneNumber
 );
+
+public sealed record UpdateCustomerProfileDto(
+    string FullName,
+    string? PhoneNumber
+);

@@ -219,6 +219,9 @@ namespace Partivex.Infrastructure.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex");
 
+                    b.HasIndex("PhoneNumber")
+                        .IsUnique();
+
                     b.ToTable("Customers", (string)null);
                 });
 
