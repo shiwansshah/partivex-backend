@@ -32,6 +32,7 @@ await using (var scope = app.Services.CreateAsyncScope())
 }
 
 await app.Services.SeedRolesAsync();
+await app.Services.SeedAdminUserAsync();
 
 if (app.Environment.IsDevelopment())
 {
