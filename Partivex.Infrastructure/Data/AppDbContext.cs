@@ -15,6 +15,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<InventoryStockChange> InventoryStockChanges => Set<InventoryStockChange>();
 
+    public DbSet<PurchaseInvoice> PurchaseInvoices => Set<PurchaseInvoice>();
+
+    public DbSet<PurchaseInvoiceItem> PurchaseInvoiceItems => Set<PurchaseInvoiceItem>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -32,6 +36,31 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(item => item.StorageLocation).HasMaxLength(80);
             entity.Property(item => item.UnitCost).HasPrecision(18, 2);
             entity.HasIndex(item => item.PartNumber).IsUnique();
+        });
+
+        builder.Entity<PurchaseInvoice>(entity =>
+        {
+            entity.ToTable("PurchaseInvoices");
+            entity.Property(inv => inv.InvoiceNumber).HasMaxLength(40);
+            entity.Property(inv => inv.VendorName).HasMaxLength(120);
+            entity.Property(inv => inv.Status).HasMaxLength(20);
+            entity.Property(inv => inv.CreatedBy).HasMaxLength(120);
+            entity.Property(inv => inv.Notes).HasMaxLength(500);
+            entity.HasIndex(inv => inv.InvoiceNumber).IsUnique();
+        });
+
+        builder.Entity<PurchaseInvoiceItem>(entity =>
+        {
+            entity.ToTable("PurchaseInvoiceItems");
+            entity.Property(item => item.UnitCost).HasPrecision(18, 2);
+            entity.HasOne(item => item.PurchaseInvoice)
+                .WithMany(inv => inv.Items)
+                .HasForeignKey(item => item.PurchaseInvoiceId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(item => item.InventoryItem)
+                .WithMany()
+                .HasForeignKey(item => item.InventoryItemId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<InventoryStockChange>(entity =>

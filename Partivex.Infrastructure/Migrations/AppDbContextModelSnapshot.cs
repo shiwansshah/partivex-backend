@@ -315,6 +315,81 @@ namespace Partivex.Infrastructure.Migrations
                 b.ToTable("InventoryStockChanges", (string)null);
             });
 
+            modelBuilder.Entity("Partivex.Domain.Entities.PurchaseInvoice", b =>
+            {
+                b.Property<int>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("integer")
+                    .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                b.Property<DateTimeOffset>("CreatedAt")
+                    .HasColumnType("timestamp with time zone");
+
+                b.Property<string>("CreatedBy")
+                    .IsRequired()
+                    .HasMaxLength(120)
+                    .HasColumnType("character varying(120)");
+
+                b.Property<DateTimeOffset>("InvoiceDate")
+                    .HasColumnType("timestamp with time zone");
+
+                b.Property<string>("InvoiceNumber")
+                    .IsRequired()
+                    .HasMaxLength(40)
+                    .HasColumnType("character varying(40)");
+
+                b.Property<string>("Notes")
+                    .IsRequired()
+                    .HasMaxLength(500)
+                    .HasColumnType("character varying(500)");
+
+                b.Property<string>("Status")
+                    .IsRequired()
+                    .HasMaxLength(20)
+                    .HasColumnType("character varying(20)");
+
+                b.Property<string>("VendorName")
+                    .IsRequired()
+                    .HasMaxLength(120)
+                    .HasColumnType("character varying(120)");
+
+                b.HasKey("Id");
+
+                b.HasIndex("InvoiceNumber")
+                    .IsUnique();
+
+                b.ToTable("PurchaseInvoices", (string)null);
+            });
+
+            modelBuilder.Entity("Partivex.Domain.Entities.PurchaseInvoiceItem", b =>
+            {
+                b.Property<int>("Id")
+                    .ValueGeneratedOnAdd()
+                    .HasColumnType("integer")
+                    .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                b.Property<int>("InventoryItemId")
+                    .HasColumnType("integer");
+
+                b.Property<int>("PurchaseInvoiceId")
+                    .HasColumnType("integer");
+
+                b.Property<int>("Quantity")
+                    .HasColumnType("integer");
+
+                b.Property<decimal>("UnitCost")
+                    .HasPrecision(18, 2)
+                    .HasColumnType("numeric(18,2)");
+
+                b.HasKey("Id");
+
+                b.HasIndex("InventoryItemId");
+
+                b.HasIndex("PurchaseInvoiceId");
+
+                b.ToTable("PurchaseInvoiceItems", (string)null);
+            });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
             {
                 b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -380,6 +455,29 @@ namespace Partivex.Infrastructure.Migrations
             modelBuilder.Entity("Partivex.Domain.Entities.InventoryItem", b =>
             {
                 b.Navigation("StockChanges");
+            });
+
+            modelBuilder.Entity("Partivex.Domain.Entities.PurchaseInvoiceItem", b =>
+            {
+                b.HasOne("Partivex.Domain.Entities.PurchaseInvoice", "PurchaseInvoice")
+                    .WithMany("Items")
+                    .HasForeignKey("PurchaseInvoiceId")
+                    .OnDelete(DeleteBehavior.Cascade)
+                    .IsRequired();
+
+                b.HasOne("Partivex.Domain.Entities.InventoryItem", "InventoryItem")
+                    .WithMany()
+                    .HasForeignKey("InventoryItemId")
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired();
+
+                b.Navigation("PurchaseInvoice");
+                b.Navigation("InventoryItem");
+            });
+
+            modelBuilder.Entity("Partivex.Domain.Entities.PurchaseInvoice", b =>
+            {
+                b.Navigation("Items");
             });
         }
     }
