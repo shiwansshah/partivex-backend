@@ -61,7 +61,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("create-customer")] // Handles customer creation.
-    [Authorize(Roles = ApplicationRoles.Staff)] // Restricts customer creation.
+    [Authorize(Roles = ApplicationRoles.AdminAndStaff)] // Allows admin to do everything staff can do.
     [ProducesResponseType(typeof(UserCreatedResponse), StatusCodes.Status200OK)] // Documents create success.
     [ProducesResponseType(StatusCodes.Status400BadRequest)] // Documents validation failure.
     [ProducesResponseType(StatusCodes.Status401Unauthorized)] // Documents missing auth.
