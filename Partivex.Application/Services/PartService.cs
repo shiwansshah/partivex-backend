@@ -13,14 +13,21 @@ public sealed class PartService : IPartService
         _partRepository = partRepository;
     }
 
-    public Task<IReadOnlyList<PartResponseDto>> GetAllAsync()
+    public async Task<IReadOnlyList<PartResponseDto>> GetAllAsync(
+        string? searchTerm = null,
+        int pageNumber = 1,
+        int pageSize = 20,
+        string? sortBy = "name",
+        string? sortDirection = "asc")
     {
-        return Task.FromResult<IReadOnlyList<PartResponseDto>>(Array.Empty<PartResponseDto>());
+        var parts = await _partRepository.GetAllAsync(searchTerm, sortBy, sortDirection, pageNumber, pageSize);
+        return parts.Select(MapToResponseDto).ToArray();
     }
 
-    public Task<PartResponseDto?> GetByIdAsync(int id)
+    public async Task<PartResponseDto?> GetByIdAsync(int id)
     {
-        return Task.FromResult<PartResponseDto?>(null);
+        var part = await _partRepository.GetByIdAsync(id);
+        return part is null ? null : MapToResponseDto(part);
     }
 
     public async Task<PartResponseDto> CreateAsync(CreatePartDto partDto)

@@ -16,9 +16,14 @@ public class PartController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<PartResponseDto>>> GetParts()
+    public async Task<ActionResult<IReadOnlyList<PartResponseDto>>> GetParts(
+        [FromQuery] string? searchTerm,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? sortBy = "name",
+        [FromQuery] string? sortDirection = "asc")
     {
-        var parts = await _partService.GetAllAsync();
+        var parts = await _partService.GetAllAsync(searchTerm, pageNumber, pageSize, sortBy, sortDirection);
         return Ok(parts);
     }
 
