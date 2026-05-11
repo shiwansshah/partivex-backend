@@ -46,10 +46,6 @@ public class PartController : ControllerBase
         {
             return BadRequest(new { message = error.Message });
         }
-        catch (NotImplementedException error)
-        {
-            return StatusCode(StatusCodes.Status501NotImplemented, new { message = error.Message });
-        }
     }
 
     [HttpPut("{id:int}")]
@@ -68,10 +64,6 @@ public class PartController : ControllerBase
         catch (ArgumentException error)
         {
             return BadRequest(new { message = error.Message });
-        }
-        catch (NotImplementedException error)
-        {
-            return StatusCode(StatusCodes.Status501NotImplemented, new { message = error.Message });
         }
     }
 
