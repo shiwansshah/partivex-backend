@@ -40,4 +40,10 @@ public sealed class PartRepository : IPartRepository
         _dbContext.Parts.Update(part);
         await _dbContext.SaveChangesAsync();
     }
+
+    public async Task DeleteAsync(Part part)
+    {
+        part.IsActive = false;
+        await _dbContext.SaveChangesAsync();
+    }
 }

@@ -80,9 +80,9 @@ public class PartController : ControllerBase
 
             return NoContent();
         }
-        catch (NotImplementedException error)
+        catch (ArgumentException error)
         {
-            return StatusCode(StatusCodes.Status501NotImplemented, new { message = error.Message });
+            return BadRequest(new { message = error.Message });
         }
     }
 }

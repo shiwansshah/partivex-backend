@@ -69,9 +69,21 @@ public sealed class PartService : IPartService
         return MapToResponseDto(part);
     }
 
-    public Task<bool> DeleteAsync(int id)
+    public async Task<bool> DeleteAsync(int id)
     {
-        throw new NotImplementedException("Part deletion will be implemented in the next step.");
+        var part = await _partRepository.GetByIdAsync(id);
+        if (part is null || !part.IsActive)
+        {
+            return false;
+        }
+
+        if (part.Stock > 0)
+        {
+            throw new ArgumentException("Cannot delete a part that still has stock.");
+        }
+
+        await _partRepository.DeleteAsync(part);
+        return true;
     }
 
     private static PartResponseDto MapToResponseDto(Part part)

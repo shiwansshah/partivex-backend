@@ -11,4 +11,6 @@ public interface IPartRepository
     Task<Part> AddAsync(Part part);
 
     Task UpdateAsync(Part part);
+
+    Task DeleteAsync(Part part);
 }
