@@ -13,6 +13,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<Vendor> Vendors { get; set; }
 
+    public DbSet<Part> Parts { get; set; }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
