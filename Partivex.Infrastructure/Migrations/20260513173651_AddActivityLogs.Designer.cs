@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Partivex.Infrastructure.Data;
@@ -11,9 +12,11 @@ using Partivex.Infrastructure.Data;
 namespace Partivex.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260513173651_AddActivityLogs")]
+    partial class AddActivityLogs
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -410,35 +413,6 @@ namespace Partivex.Infrastructure.Migrations
                     b.ToTable("InventoryStockChanges", (string)null);
                 });
 
-            modelBuilder.Entity("Partivex.Domain.Entities.Permission", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("Permissions", (string)null);
-                });
-
             modelBuilder.Entity("Partivex.Domain.Entities.PurchaseInvoice", b =>
                 {
                     b.Property<int>("Id")
@@ -514,35 +488,6 @@ namespace Partivex.Infrastructure.Migrations
                     b.HasIndex("PurchaseInvoiceId");
 
                     b.ToTable("PurchaseInvoiceItems", (string)null);
-                });
-
-            modelBuilder.Entity("Partivex.Domain.Entities.RolePermission", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("PermissionId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("RoleName")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PermissionId");
-
-                    b.HasIndex("RoleName", "PermissionId")
-                        .IsUnique();
-
-                    b.ToTable("RolePermissions", (string)null);
                 });
 
             modelBuilder.Entity("Partivex.Domain.Entities.Vehicle", b =>
@@ -666,17 +611,6 @@ namespace Partivex.Infrastructure.Migrations
                     b.Navigation("PurchaseInvoice");
                 });
 
-            modelBuilder.Entity("Partivex.Domain.Entities.RolePermission", b =>
-                {
-                    b.HasOne("Partivex.Domain.Entities.Permission", "Permission")
-                        .WithMany("RolePermissions")
-                        .HasForeignKey("PermissionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Permission");
-                });
-
             modelBuilder.Entity("Partivex.Domain.Entities.Vehicle", b =>
                 {
                     b.HasOne("Partivex.Domain.Entities.ApplicationUser", "Customer")
@@ -691,11 +625,6 @@ namespace Partivex.Infrastructure.Migrations
             modelBuilder.Entity("Partivex.Domain.Entities.InventoryItem", b =>
                 {
                     b.Navigation("StockChanges");
-                });
-
-            modelBuilder.Entity("Partivex.Domain.Entities.Permission", b =>
-                {
-                    b.Navigation("RolePermissions");
                 });
 
             modelBuilder.Entity("Partivex.Domain.Entities.PurchaseInvoice", b =>

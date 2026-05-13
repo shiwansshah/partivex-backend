@@ -23,6 +23,12 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<PurchaseInvoiceItem> PurchaseInvoiceItems => Set<PurchaseInvoiceItem>();
 
+    public DbSet<ActivityLog> ActivityLogs => Set<ActivityLog>();
+
+    public DbSet<Permission> Permissions => Set<Permission>();
+
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -33,6 +39,46 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<ApplicationUser>()
             .HasIndex(user => user.PhoneNumber)
             .IsUnique();
+
+        builder.Entity<ActivityLog>(entity =>
+        {
+            entity.ToTable("ActivityLogs");
+            entity.HasKey(log => log.Id);
+            entity.Property(log => log.UserId).HasMaxLength(450);
+            entity.Property(log => log.UserName).HasMaxLength(256);
+            entity.Property(log => log.Role).HasMaxLength(80);
+            entity.Property(log => log.Action).IsRequired().HasMaxLength(120);
+            entity.Property(log => log.EntityName).HasMaxLength(120);
+            entity.Property(log => log.EntityId).HasMaxLength(120);
+            entity.Property(log => log.Description).HasMaxLength(500);
+            entity.Property(log => log.IpAddress).HasMaxLength(80);
+            entity.Property(log => log.CreatedAt).IsRequired();
+            entity.HasIndex(log => log.CreatedAt);
+            entity.HasIndex(log => log.Action);
+        });
+
+        builder.Entity<Permission>(entity =>
+        {
+            entity.ToTable("Permissions");
+            entity.HasKey(permission => permission.Id);
+            entity.Property(permission => permission.Name).IsRequired().HasMaxLength(120);
+            entity.Property(permission => permission.Description).HasMaxLength(300);
+            entity.Property(permission => permission.CreatedAt).IsRequired();
+            entity.HasIndex(permission => permission.Name).IsUnique();
+        });
+
+        builder.Entity<RolePermission>(entity =>
+        {
+            entity.ToTable("RolePermissions");
+            entity.HasKey(rolePermission => rolePermission.Id);
+            entity.Property(rolePermission => rolePermission.RoleName).IsRequired().HasMaxLength(80);
+            entity.Property(rolePermission => rolePermission.CreatedAt).IsRequired();
+            entity.HasIndex(rolePermission => new { rolePermission.RoleName, rolePermission.PermissionId }).IsUnique();
+            entity.HasOne(rolePermission => rolePermission.Permission)
+                .WithMany(permission => permission.RolePermissions)
+                .HasForeignKey(rolePermission => rolePermission.PermissionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
 
         builder.Entity<InventoryItem>(entity =>
         {

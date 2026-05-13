@@ -10,13 +10,16 @@ public sealed class StaffService : IStaffService // Implements staff service.
 {
     private readonly UserManager<ApplicationUser> _userManager; // Stores user manager.
     private readonly RoleManager<IdentityRole> _roleManager; // Stores role manager.
+    private readonly IActivityLogService _activityLogService; // Stores activity log service.
 
     public StaffService( // Defines constructor.
         UserManager<ApplicationUser> userManager, // Receives user manager.
-        RoleManager<IdentityRole> roleManager) // Receives role manager.
+        RoleManager<IdentityRole> roleManager, // Receives role manager.
+        IActivityLogService activityLogService) // Receives activity log service.
     {
         _userManager = userManager; // Assigns user manager.
         _roleManager = roleManager; // Assigns role manager.
+        _activityLogService = activityLogService; // Assigns activity log service.
     }
 
     public async Task<StaffDto> CreateStaffAsync(CreateStaffDto dto) // Creates staff user.
@@ -57,6 +60,12 @@ public sealed class StaffService : IStaffService // Implements staff service.
             throw new InvalidOperationException(ToErrorMessage(roleResult)); // Reports role errors.
         }
 
+        await _activityLogService.LogAsync(new CreateActivityLogCommand(
+            "CreateStaff",
+            "Staff",
+            user.Id,
+            $"Admin created staff account for {user.Email}."));
+
         return MapToStaffDto(user); // Returns staff DTO.
     }
 
@@ -86,11 +95,18 @@ public sealed class StaffService : IStaffService // Implements staff service.
         {
             throw new InvalidOperationException(ToErrorMessage(result)); // Reports identity errors.
         }
+
+        await _activityLogService.LogAsync(new CreateActivityLogCommand(
+            "UpdateStaff",
+            "Staff",
+            user.Id,
+            $"Admin updated staff account for {user.Email}."));
     }
 
     public async Task DeleteStaffAsync(string id) // Deletes staff user.
     {
         var user = await FindStaffUserAsync(id); // Loads staff user.
+        var email = user.Email ?? user.UserName ?? user.Id; // Stores safe audit label before deletion.
 
         var result = await _userManager.DeleteAsync(user); // Deletes identity user.
 
@@ -98,6 +114,12 @@ public sealed class StaffService : IStaffService // Implements staff service.
         {
             throw new InvalidOperationException(ToErrorMessage(result)); // Reports identity errors.
         }
+
+        await _activityLogService.LogAsync(new CreateActivityLogCommand(
+            "DeleteStaff",
+            "Staff",
+            id,
+            $"Admin deleted staff account for {email}."));
     }
 
     private async Task EnsureStaffRoleExistsAsync() // Validates role exists.

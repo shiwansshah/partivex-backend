@@ -79,7 +79,11 @@ public static class DependencyInjection
         services.AddScoped<IVehicleRepository, VehicleRepository>();
         services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<IPurchaseRepository, PurchaseRepository>();
+        services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
+        services.AddScoped<ICurrentUserContext, CurrentUserContext>();
+        services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+        services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<IStaffService, StaffService>(); // Registers staff service.
         services.AddScoped<ICustomerService, CustomerService>(); // Registers customer service.
 

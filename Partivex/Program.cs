@@ -33,6 +33,7 @@ await using (var scope = app.Services.CreateAsyncScope())
 }
 
 await app.Services.SeedRolesAsync();
+await app.Services.SeedPermissionsAsync();
 
 if (app.Environment.IsDevelopment())
 {
