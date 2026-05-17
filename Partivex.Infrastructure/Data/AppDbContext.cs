@@ -13,6 +13,12 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
 
+    public DbSet<Appointment> Appointments => Set<Appointment>();
+
+    public DbSet<PartRequest> PartRequests => Set<PartRequest>();
+
+    public DbSet<Review> Reviews => Set<Review>();
+
     public DbSet<CustomerHistory> CustomerHistories { get; set; } = null!; // Stores history rows.
 
     public DbSet<InventoryItem> InventoryItems => Set<InventoryItem>();
@@ -96,6 +102,82 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                 .WithMany()
                 .HasForeignKey(v => v.CustomerId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<Appointment>(entity =>
+        {
+            entity.ToTable("Appointments");
+            entity.HasKey(appointment => appointment.Id);
+            entity.Property(appointment => appointment.ServiceType).IsRequired().HasMaxLength(100);
+            entity.Property(appointment => appointment.Notes).HasMaxLength(1000);
+            entity.Property(appointment => appointment.Status)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+
+            entity.HasIndex(appointment => appointment.CustomerId);
+            entity.HasIndex(appointment => appointment.VehicleId);
+            entity.HasIndex(appointment => appointment.PreferredAt);
+
+            entity.HasOne(appointment => appointment.Customer)
+                .WithMany()
+                .HasForeignKey(appointment => appointment.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(appointment => appointment.Vehicle)
+                .WithMany()
+                .HasForeignKey(appointment => appointment.VehicleId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<PartRequest>(entity =>
+        {
+            entity.ToTable("PartRequests");
+            entity.HasKey(request => request.Id);
+            entity.Property(request => request.PartName).IsRequired().HasMaxLength(120);
+            entity.Property(request => request.BrandModelSpecification).HasMaxLength(200);
+            entity.Property(request => request.Reason).HasMaxLength(1000);
+            entity.Property(request => request.Status)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+
+            entity.HasIndex(request => request.CustomerId);
+            entity.HasIndex(request => request.VehicleId);
+            entity.HasIndex(request => request.Status);
+
+            entity.HasOne(request => request.Customer)
+                .WithMany()
+                .HasForeignKey(request => request.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(request => request.Vehicle)
+                .WithMany()
+                .HasForeignKey(request => request.VehicleId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<Review>(entity =>
+        {
+            entity.ToTable("Reviews");
+            entity.HasKey(review => review.Id);
+            entity.Property(review => review.Category)
+                .HasConversion<string>()
+                .HasMaxLength(20);
+            entity.Property(review => review.Comment).IsRequired().HasMaxLength(2000);
+
+            entity.HasIndex(review => review.CustomerId);
+            entity.HasIndex(review => new { review.CustomerId, review.AppointmentId })
+                .IsUnique()
+                .HasFilter("\"AppointmentId\" IS NOT NULL");
+
+            entity.HasOne(review => review.Customer)
+                .WithMany()
+                .HasForeignKey(review => review.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(review => review.Appointment)
+                .WithMany(appointment => appointment.Reviews)
+                .HasForeignKey(review => review.AppointmentId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<CustomerHistory>(entity => // Configures history entity.
