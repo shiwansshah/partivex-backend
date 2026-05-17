@@ -64,6 +64,7 @@ public sealed class PartRepository : IPartRepository
         var normalizedCode = partCode.Trim().ToUpper();
 
         return _dbContext.Parts.AnyAsync(part =>
+            part.IsActive &&
             part.PartCode.ToUpper() == normalizedCode &&
             (!excludedPartId.HasValue || part.Id != excludedPartId.Value));
     }
