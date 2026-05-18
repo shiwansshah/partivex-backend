@@ -8,5 +8,7 @@ public interface ICustomerService // Defines customer service contract.
 
     Task<CustomerDetailDto?> GetCustomerByIdAsync(string id); // Gets customer detail.
 
-    Task<CustomerHistoryDto?> GetCustomerHistoryAsync(string id); // Gets customer history.
+    Task<CustomerDetailDto> UpdateAsync(string id, UpdateCustomerDto dto); // Updates a customer.
+
+    Task<IEnumerable<CustomerDto>> SearchAsync(string term); // Searches customers.
 }
