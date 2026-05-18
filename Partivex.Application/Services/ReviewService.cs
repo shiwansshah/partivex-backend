@@ -185,6 +185,7 @@ public sealed class ReviewService : IReviewService
     {
         return new CommunityReviewListDto(
             review.Id,
+            review.AppointmentId,
             string.IsNullOrWhiteSpace(review.Customer.FullName) ? "Partivex customer" : review.Customer.FullName,
             review.CustomerId == customerId,
             review.Category.ToString(),

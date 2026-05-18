@@ -159,6 +159,7 @@ public sealed record ReviewListDto(
 
 public sealed record CommunityReviewListDto(
     Guid Id,
+    Guid? AppointmentId,
     string CustomerName,
     bool IsOwnReview,
     string Category,
