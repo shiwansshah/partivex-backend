@@ -188,14 +188,39 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
             entity.Property(history => history.CustomerId).IsRequired(); // Requires customer id.
 
-            entity.Property(history => history.Description).IsRequired(); // Requires description.
+            entity.Property(history => history.VehicleId); // Configures optional vehicle id.
 
-            entity.Property(history => history.CreatedAt).IsRequired(); // Requires creation timestamp.
+            entity.Property(history => history.HistoryType)
+                .HasConversion<string>()
+                .HasMaxLength(20); // Stores history type as text.
 
-            entity.HasOne<ApplicationUser>() // Configures customer relation.
-                .WithMany() // Uses no navigation collection.
+            entity.Property(history => history.Description).IsRequired().HasMaxLength(1000); // Requires description.
+
+            entity.Property(history => history.Amount).HasPrecision(18, 2); // Stores amount precisely.
+
+            entity.Property(history => history.PaymentStatus)
+                .HasConversion<string>()
+                .HasMaxLength(20); // Stores payment status as text.
+
+            entity.Property(history => history.HistoryDate).IsRequired(); // Requires history timestamp.
+
+            entity.HasIndex(history => history.CustomerId); // Adds customer index.
+
+            entity.HasIndex(history => history.VehicleId); // Adds vehicle index.
+
+            entity.HasIndex(history => history.HistoryType); // Adds type index.
+
+            entity.HasIndex(history => history.PaymentStatus); // Adds payment index.
+
+            entity.HasOne(history => history.Customer) // Configures customer relation.
+                .WithMany(customer => customer.CustomerHistories) // Uses navigation collection.
                 .HasForeignKey(history => history.CustomerId) // Uses customer id FK.
                 .OnDelete(DeleteBehavior.Cascade); // Deletes history with customer.
+
+            entity.HasOne(history => history.Vehicle) // Configures vehicle relation.
+                .WithMany(vehicle => vehicle.CustomerHistories) // Uses vehicle history collection.
+                .HasForeignKey(history => history.VehicleId) // Uses vehicle id FK.
+                .OnDelete(DeleteBehavior.SetNull); // Keeps history if vehicle is deleted.
         }); // Ends history configuration.
     }
 }
