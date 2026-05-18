@@ -12,7 +12,7 @@ using Partivex.Infrastructure.Data;
 namespace Partivex.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260518174644_ReworkInventoryPurchasesForParts")]
+    [Migration("20260518181003_ReworkInventoryPurchasesForParts")]
     partial class ReworkInventoryPurchasesForParts
     {
         /// <inheritdoc />
@@ -374,13 +374,13 @@ namespace Partivex.Infrastructure.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
-                    b.Property<int>("InventoryItemId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Notes")
                         .IsRequired()
                         .HasMaxLength(240)
                         .HasColumnType("character varying(240)");
+
+                    b.Property<int>("PartId")
+                        .HasColumnType("integer");
 
                     b.Property<int>("QuantityAfterChange")
                         .HasColumnType("integer");
@@ -393,11 +393,76 @@ namespace Partivex.Infrastructure.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
 
+                    b.Property<int>("VendorId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("InventoryItemId");
+                    b.HasIndex("PartId");
+
+                    b.HasIndex("VendorId");
 
                     b.ToTable("InventoryStockChanges", (string)null);
+                });
+
+            modelBuilder.Entity("Partivex.Domain.Entities.Part", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("CompatibleVehicle")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CurrentStock")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("MinimumStockLevel")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("PartCode")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PartCode")
+                        .IsUnique();
+
+                    b.ToTable("Parts", (string)null);
                 });
 
             modelBuilder.Entity("Partivex.Domain.Entities.PartRequest", b =>
@@ -485,6 +550,9 @@ namespace Partivex.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<int>("VendorId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("VendorName")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -494,6 +562,8 @@ namespace Partivex.Infrastructure.Migrations
 
                     b.HasIndex("InvoiceNumber")
                         .IsUnique();
+
+                    b.HasIndex("VendorId");
 
                     b.ToTable("PurchaseInvoices", (string)null);
                 });
@@ -506,7 +576,7 @@ namespace Partivex.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("InventoryItemId")
+                    b.Property<int>("PartId")
                         .HasColumnType("integer");
 
                     b.Property<int>("PurchaseInvoiceId")
@@ -515,13 +585,13 @@ namespace Partivex.Infrastructure.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("integer");
 
-                    b.Property<decimal>("UnitCost")
+                    b.Property<decimal>("UnitPrice")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("InventoryItemId");
+                    b.HasIndex("PartId");
 
                     b.HasIndex("PurchaseInvoiceId");
 
@@ -602,6 +672,53 @@ namespace Partivex.Infrastructure.Migrations
                     b.HasIndex("CustomerId");
 
                     b.ToTable("Vehicles", (string)null);
+                });
+
+            modelBuilder.Entity("Partivex.Domain.Entities.Vendor", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(240)
+                        .HasColumnType("character varying(240)");
+
+                    b.Property<string>("ContactPerson")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.ToTable("Vendors", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -685,13 +802,21 @@ namespace Partivex.Infrastructure.Migrations
 
             modelBuilder.Entity("Partivex.Domain.Entities.InventoryStockChange", b =>
                 {
-                    b.HasOne("Partivex.Domain.Entities.InventoryItem", "InventoryItem")
+                    b.HasOne("Partivex.Domain.Entities.Part", "Part")
                         .WithMany("StockChanges")
-                        .HasForeignKey("InventoryItemId")
+                        .HasForeignKey("PartId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("InventoryItem");
+                    b.HasOne("Partivex.Domain.Entities.Vendor", "Vendor")
+                        .WithMany()
+                        .HasForeignKey("VendorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Part");
+
+                    b.Navigation("Vendor");
                 });
 
             modelBuilder.Entity("Partivex.Domain.Entities.PartRequest", b =>
@@ -712,11 +837,22 @@ namespace Partivex.Infrastructure.Migrations
                     b.Navigation("Vehicle");
                 });
 
+            modelBuilder.Entity("Partivex.Domain.Entities.PurchaseInvoice", b =>
+                {
+                    b.HasOne("Partivex.Domain.Entities.Vendor", "Vendor")
+                        .WithMany()
+                        .HasForeignKey("VendorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Vendor");
+                });
+
             modelBuilder.Entity("Partivex.Domain.Entities.PurchaseInvoiceItem", b =>
                 {
-                    b.HasOne("Partivex.Domain.Entities.InventoryItem", "InventoryItem")
+                    b.HasOne("Partivex.Domain.Entities.Part", "Part")
                         .WithMany()
-                        .HasForeignKey("InventoryItemId")
+                        .HasForeignKey("PartId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -726,7 +862,7 @@ namespace Partivex.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("InventoryItem");
+                    b.Navigation("Part");
 
                     b.Navigation("PurchaseInvoice");
                 });
@@ -765,7 +901,7 @@ namespace Partivex.Infrastructure.Migrations
                     b.Navigation("Reviews");
                 });
 
-            modelBuilder.Entity("Partivex.Domain.Entities.InventoryItem", b =>
+            modelBuilder.Entity("Partivex.Domain.Entities.Part", b =>
                 {
                     b.Navigation("StockChanges");
                 });
