@@ -44,22 +44,93 @@ public sealed class CustomerService : ICustomerService // Implements customer se
             NormalizeText(customer.FullName), // Maps full name.
             NormalizeText(customer.Email), // Maps email safely.
             NormalizeOptionalText(customer.PhoneNumber), // Maps phone number.
+            NormalizeOptionalText(customer.Address), // Maps address.
             vehicles); // Maps vehicles.
     }
 
-    public async Task<CustomerHistoryDto?> GetCustomerHistoryAsync(string id) // Gets customer history.
+    public async Task<CustomerDetailDto> UpdateAsync(string id, UpdateCustomerDto dto) // Updates customer.
     {
         var customer = await FindCustomerOrThrowAsync(id); // Loads customer user.
 
-        var historyRows = await _dbContext.CustomerHistories // Starts history query.
+        var fullName = NormalizeRequiredText(dto.FullName, nameof(dto.FullName)); // Normalizes full name.
+        var email = NormalizeRequiredText(dto.Email, nameof(dto.Email)); // Normalizes email.
+        var address = NormalizeRequiredText(dto.Address, nameof(dto.Address)); // Normalizes address.
+        var phoneNumber = NormalizeOptionalText(dto.PhoneNumber); // Normalizes phone number.
+
+        if (!string.IsNullOrWhiteSpace(phoneNumber)) // Checks for duplicate phone.
+        {
+            var duplicatePhoneExists = await _userManager.Users // Starts user query.
+                .AnyAsync(user => user.Id != customer.Id && user.PhoneNumber == phoneNumber); // Looks for another phone.
+
+            if (duplicatePhoneExists) // Handles duplicate phone.
+            {
+                throw new InvalidOperationException("Phone number is already in use."); // Rejects duplicate phone.
+            }
+        }
+
+        var duplicateEmailExists = await _userManager.Users // Starts user query.
+            .AnyAsync(user => user.Id != customer.Id && user.Email == email); // Looks for another email.
+
+        if (duplicateEmailExists) // Handles duplicate email.
+        {
+            throw new InvalidOperationException("Email address is already in use."); // Rejects duplicate email.
+        }
+
+        customer.FullName = fullName; // Updates full name.
+        customer.Email = email; // Updates email.
+        customer.UserName = email; // Keeps username aligned with email.
+        customer.PhoneNumber = phoneNumber; // Updates phone number.
+        customer.Address = address; // Updates address.
+
+        var result = await _userManager.UpdateAsync(customer); // Persists changes.
+
+        if (!result.Succeeded) // Handles identity validation failures.
+        {
+            throw new ArgumentException(string.Join(" ", result.Errors.Select(error => error.Description))); // Raises validation error.
+        }
+
+        return await GetCustomerByIdAsync(customer.Id) ?? throw new InvalidOperationException("Customer could not be loaded after update.");
+    }
+
+    public async Task<IEnumerable<CustomerDto>> SearchAsync(string term) // Searches customers.
+    {
+        var normalizedTerm = NormalizeRequiredText(term, nameof(term)); // Normalizes search term.
+        var customers = await _userManager.GetUsersInRoleAsync(ApplicationRoles.Customer); // Loads customers.
+        var matches = new Dictionary<string, ApplicationUser>(); // Prevents duplicates.
+
+        foreach (var customer in customers) // Scans customers.
+        {
+            if (Matches(customer.Id, normalizedTerm) // Matches id.
+                || Matches(customer.FullName, normalizedTerm) // Matches full name.
+                || Matches(customer.Email, normalizedTerm) // Matches email.
+                || Matches(customer.PhoneNumber, normalizedTerm) // Matches phone.
+                || Matches(customer.Address, normalizedTerm)) // Matches address.
+            {
+                matches[customer.Id] = customer; // Adds customer match.
+            }
+        }
+
+        var vehicleCustomerIds = await _dbContext.Vehicles // Starts vehicle query.
             .AsNoTracking() // Disables tracking.
-            .Where(history => history.CustomerId == customer.Id) // Filters by customer id.
-            .OrderByDescending(history => history.CreatedAt) // Orders latest first.
-            .ToListAsync(); // Executes history query.
+            .Where(vehicle => vehicle.Number.Contains(normalizedTerm)) // Filters by vehicle number.
+            .Select(vehicle => vehicle.CustomerId) // Selects matching customer ids.
+            .Distinct() // Avoids duplicate ids.
+            .ToListAsync(); // Executes vehicle query.
 
-        var records = historyRows.Select(history => NormalizeText(history.Description)).ToList(); // Maps descriptions.
+        foreach (var vehicleCustomerId in vehicleCustomerIds) // Adds customers matched by vehicles.
+        {
+            var customer = customers.FirstOrDefault(user => user.Id == vehicleCustomerId); // Finds customer.
 
-        return new CustomerHistoryDto(customer.Id, records); // Returns history DTO.
+            if (customer is not null) // Ensures customer exists.
+            {
+                matches[customer.Id] = customer; // Adds customer once.
+            }
+        }
+
+        return matches.Values // Projects results.
+            .OrderBy(customer => customer.FullName) // Sorts alphabetically.
+            .Select(MapToCustomerDto) // Maps to DTO.
+            .ToArray(); // Returns array.
     }
 
     private async Task<ApplicationUser> FindCustomerOrThrowAsync(string id) // Finds customer user.
@@ -94,7 +165,13 @@ public sealed class CustomerService : ICustomerService // Implements customer se
             customer.Id, // Maps customer id.
             NormalizeText(customer.FullName), // Maps full name.
             NormalizeText(customer.Email), // Maps email safely.
-            NormalizeOptionalText(customer.PhoneNumber)); // Maps phone number.
+            NormalizeOptionalText(customer.PhoneNumber), // Maps phone number.
+            NormalizeOptionalText(customer.Address)); // Maps address.
+    }
+
+    private static bool Matches(string? value, string term) // Checks string match.
+    {
+        return !string.IsNullOrWhiteSpace(value) && value.Contains(term, StringComparison.OrdinalIgnoreCase); // Uses case-insensitive contains.
     }
 
     private static VehicleDto MapToVehicleDto(Vehicle vehicle) // Maps vehicle DTO.
@@ -110,6 +187,18 @@ public sealed class CustomerService : ICustomerService // Implements customer se
     private static string NormalizeText(string? value) // Normalizes required text.
     {
         return value?.Trim() ?? string.Empty; // Returns safe text.
+    }
+
+    private static string NormalizeRequiredText(string? value, string fieldName) // Normalizes required text.
+    {
+        var normalizedValue = NormalizeText(value); // Trims value.
+
+        if (string.IsNullOrWhiteSpace(normalizedValue)) // Checks blank.
+        {
+            throw new ArgumentException($"{fieldName} is required."); // Rejects blank value.
+        }
+
+        return normalizedValue; // Returns normalized text.
     }
 
     private static string? NormalizeOptionalText(string? value) // Normalizes optional text.
