@@ -1,3 +1,5 @@
+using Partivex.Domain.Enums;
+
 namespace Partivex.Domain.Entities; // Defines entity namespace.
 
 public sealed class CustomerHistory // Defines customer history entity.
@@ -6,7 +8,19 @@ public sealed class CustomerHistory // Defines customer history entity.
 
     public string CustomerId { get; set; } = string.Empty; // Stores customer user id.
 
+    public Guid? VehicleId { get; set; } // Stores optional vehicle id.
+
+    public HistoryType HistoryType { get; set; } // Stores the history type.
+
     public string Description { get; set; } = string.Empty; // Stores history description.
 
-    public DateTime CreatedAt { get; set; } // Stores creation timestamp.
+    public decimal Amount { get; set; } // Stores history amount.
+
+    public PaymentStatus PaymentStatus { get; set; } // Stores payment status.
+
+    public DateTime HistoryDate { get; set; } // Stores history timestamp.
+
+    public ApplicationUser Customer { get; set; } = null!; // Stores customer navigation.
+
+    public Vehicle? Vehicle { get; set; } // Stores vehicle navigation.
 } // Ends customer history entity.

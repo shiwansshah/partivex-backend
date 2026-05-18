@@ -20,4 +20,6 @@ public class Vehicle
     public string? ImageUrl { get; set; }
 
     public ApplicationUser Customer { get; set; } = null!;
+
+    public ICollection<CustomerHistory> CustomerHistories { get; set; } = [];
 }
