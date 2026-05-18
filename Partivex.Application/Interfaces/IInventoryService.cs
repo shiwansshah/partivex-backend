@@ -8,17 +8,8 @@ public interface IInventoryService
 
     Task<IReadOnlyCollection<InventoryItemDto>> GetItemsAsync(CancellationToken cancellationToken = default);
 
-    Task<InventoryResult<InventoryItemDto>> CreateItemAsync(
-        UpsertInventoryItemCommand command,
-        CancellationToken cancellationToken = default);
-
-    Task<InventoryResult<InventoryItemDto>> UpdateItemAsync(
-        int id,
-        UpsertInventoryItemCommand command,
-        CancellationToken cancellationToken = default);
-
-    Task<InventoryResult<InventoryDeletedResponse>> DeleteItemAsync(
-        int id,
+    Task<InventoryResult<PurchaseInvoiceDto>> AddStockAsync(
+        AddStockCommand command,
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyCollection<InventoryStockChangeDto>> GetRecentStockChangesAsync(

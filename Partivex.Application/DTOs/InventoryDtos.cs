@@ -11,19 +11,20 @@ public sealed record InventoryItemDto(
     string PartNumber,
     string Name,
     string Category,
-    string VendorName,
-    string StorageLocation,
+    string CompatibleVehicle,
     int QuantityInStock,
     int ReorderLevel,
-    decimal UnitCost,
+    decimal UnitPrice,
+    string ImageUrl,
     DateTimeOffset UpdatedAt,
-    bool IsLowStock);
+    string StockStatus);
 
 public sealed record InventoryStockChangeDto(
     int Id,
-    int InventoryItemId,
+    int PartId,
     string PartName,
     string PartNumber,
+    string VendorName,
     string ChangeType,
     int QuantityChanged,
     int QuantityAfterChange,
@@ -37,21 +38,14 @@ public sealed record InventoryMonitoringDto(
     IReadOnlyCollection<InventoryItemDto> Items,
     IReadOnlyCollection<InventoryStockChangeDto> RecentChanges);
 
-public sealed record UpsertInventoryItemCommand(
-    string PartNumber,
-    string Name,
-    string Category,
-    string VendorName,
-    string StorageLocation,
-    int QuantityInStock,
-    int ReorderLevel,
-    decimal UnitCost,
+public sealed record AddStockCommand(
+    int VendorId,
+    int PartId,
+    int PurchaseQuantity,
+    DateTimeOffset PurchaseDate,
+    string InvoiceNumber,
     string ChangedBy,
-    string ReferenceCode,
-    string Notes,
-    string StockChangeType);
-
-public sealed record InventoryDeletedResponse(int Id, string Name);
+    string Remarks);
 
 public sealed record InventoryError(string Code, string Description);
 

@@ -100,7 +100,7 @@ public sealed class CreatePurchaseInvoiceRequest
 
     [Required]
     [MaxLength(120)]
-    public string VendorName { get; init; } = string.Empty;
+    public int VendorId { get; init; }
 
     public DateTimeOffset InvoiceDate { get; init; } = DateTimeOffset.UtcNow;
 
@@ -119,22 +119,19 @@ public sealed class CreatePurchaseInvoiceRequest
     {
         return new CreatePurchaseInvoiceCommand(
             InvoiceNumber,
-            VendorName,
+            VendorId,
             InvoiceDate,
             CreatedBy,
             Notes,
-            Lines.Select(l => new PurchaseInvoiceLineCommand(l.InventoryItemId, l.Quantity, l.UnitCost)).ToArray());
+            Lines.Select(l => new PurchaseInvoiceLineCommand(l.PartId, l.Quantity)).ToArray());
     }
 }
 
 public sealed class PurchaseLineRequest
 {
     [Range(1, int.MaxValue)]
-    public int InventoryItemId { get; init; }
+    public int PartId { get; init; }
 
     [Range(1, int.MaxValue)]
     public int Quantity { get; init; }
-
-    [Range(typeof(decimal), "0", "9999999999")]
-    public decimal UnitCost { get; init; }
 }

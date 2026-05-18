@@ -19,7 +19,7 @@ public sealed class PurchaseRepository : IPurchaseRepository
         return await _dbContext.PurchaseInvoices
             .AsNoTracking()
             .Include(invoice => invoice.Items)
-                .ThenInclude(item => item.InventoryItem)
+                .ThenInclude(item => item.Part)
             .OrderByDescending(invoice => invoice.CreatedAt)
             .ToArrayAsync(cancellationToken);
     }
@@ -28,7 +28,7 @@ public sealed class PurchaseRepository : IPurchaseRepository
     {
         return _dbContext.PurchaseInvoices
             .Include(invoice => invoice.Items)
-                .ThenInclude(item => item.InventoryItem)
+                .ThenInclude(item => item.Part)
             .FirstOrDefaultAsync(invoice => invoice.Id == id, cancellationToken);
     }
 

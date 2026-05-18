@@ -6,28 +6,38 @@ namespace Partivex.Application.Services;
 
 public sealed class InventoryService : IInventoryService
 {
-    private const int RecentChangesLimit = 12;
-    private const string DefaultChangedBy = "Admin";
+    private const int RecentChangesLimit = 20;
+    private const string DefaultChangedBy = "Partivex Admin";
 
     private readonly IInventoryRepository _inventoryRepository;
+    private readonly IPartRepository _partRepository;
+    private readonly IVendorRepository _vendorRepository;
+    private readonly IPurchaseRepository _purchaseRepository;
 
-    public InventoryService(IInventoryRepository inventoryRepository)
+    public InventoryService(
+        IInventoryRepository inventoryRepository,
+        IPartRepository partRepository,
+        IVendorRepository vendorRepository,
+        IPurchaseRepository purchaseRepository)
     {
         _inventoryRepository = inventoryRepository;
+        _partRepository = partRepository;
+        _vendorRepository = vendorRepository;
+        _purchaseRepository = purchaseRepository;
     }
 
     public async Task<InventoryMonitoringDto> GetMonitoringAsync(CancellationToken cancellationToken = default)
     {
-        var items = await _inventoryRepository.GetItemsAsync(cancellationToken);
+        var parts = await _inventoryRepository.GetPartsAsync(cancellationToken);
         var changes = await _inventoryRepository.GetRecentStockChangesAsync(RecentChangesLimit, cancellationToken);
 
-        var itemDtos = items.Select(MapItem).ToArray();
+        var itemDtos = parts.Select(MapPart).ToArray();
         var changeDtos = changes.Select(MapChange).ToArray();
 
         var summary = new InventorySummaryDto(
             itemDtos.Length,
             itemDtos.Sum(item => item.QuantityInStock),
-            itemDtos.Count(item => item.IsLowStock),
+            itemDtos.Count(item => item.StockStatus is "Low Stock" or "Out of Stock"),
             itemDtos
                 .Select(item => (DateTimeOffset?)item.UpdatedAt)
                 .OrderByDescending(updatedAt => updatedAt)
@@ -38,116 +48,74 @@ public sealed class InventoryService : IInventoryService
 
     public async Task<IReadOnlyCollection<InventoryItemDto>> GetItemsAsync(CancellationToken cancellationToken = default)
     {
-        var items = await _inventoryRepository.GetItemsAsync(cancellationToken);
-        return items.Select(MapItem).ToArray();
+        var parts = await _inventoryRepository.GetPartsAsync(cancellationToken);
+        return parts.Select(MapPart).ToArray();
     }
 
-    public async Task<InventoryResult<InventoryItemDto>> CreateItemAsync(
-        UpsertInventoryItemCommand command,
+    public async Task<InventoryResult<PurchaseInvoiceDto>> AddStockAsync(
+        AddStockCommand command,
         CancellationToken cancellationToken = default)
     {
-        var validationErrors = await ValidateCommandAsync(command, null, cancellationToken);
-        if (validationErrors.Count > 0)
+        var errors = await ValidateAddStockCommandAsync(command, cancellationToken);
+        if (errors.Count > 0)
         {
-            return InventoryResult<InventoryItemDto>.Failed(validationErrors);
+            return InventoryResult<PurchaseInvoiceDto>.Failed(errors);
         }
 
-        var sanitized = SanitizeCommand(command);
-        var item = new InventoryItem
+        var part = await _partRepository.GetActiveByIdAsync(command.PartId, cancellationToken);
+        var vendor = await _vendorRepository.GetActiveByIdAsync(command.VendorId, cancellationToken);
+        if (part is null || vendor is null)
         {
-            PartNumber = sanitized.PartNumber,
-            Name = sanitized.Name,
-            Category = sanitized.Category,
-            VendorName = sanitized.VendorName,
-            StorageLocation = sanitized.StorageLocation,
-            QuantityInStock = sanitized.QuantityInStock,
-            ReorderLevel = sanitized.ReorderLevel,
-            UnitCost = sanitized.UnitCost,
-            UpdatedAt = DateTimeOffset.UtcNow
+            return InventoryResult<PurchaseInvoiceDto>.NotFound();
+        }
+
+        var invoiceNumber = string.IsNullOrWhiteSpace(command.InvoiceNumber)
+            ? await GenerateInvoiceNumberAsync(cancellationToken)
+            : command.InvoiceNumber.Trim().ToUpperInvariant();
+        var changedBy = string.IsNullOrWhiteSpace(command.ChangedBy)
+            ? DefaultChangedBy
+            : command.ChangedBy.Trim();
+        var remarks = command.Remarks.Trim();
+
+        part.CurrentStock += command.PurchaseQuantity;
+        part.UpdatedAt = DateTime.UtcNow;
+        await _partRepository.UpdateAsync(part);
+
+        var invoice = new PurchaseInvoice
+        {
+            InvoiceNumber = invoiceNumber,
+            VendorId = vendor.Id,
+            VendorName = vendor.Name,
+            InvoiceDate = command.PurchaseDate,
+            Status = "Confirmed",
+            CreatedBy = changedBy,
+            Notes = remarks,
+            CreatedAt = DateTimeOffset.UtcNow
         };
-
-        await _inventoryRepository.AddItemAsync(item, cancellationToken);
-        await _inventoryRepository.SaveChangesAsync(cancellationToken);
-
-        if (item.QuantityInStock > 0)
+        invoice.Items.Add(new PurchaseInvoiceItem
         {
-            var initialChange = BuildStockChange(
-                item,
-                item.QuantityInStock,
-                sanitized,
-                "Initial Stock",
-                $"OPEN-{item.PartNumber}");
+            PartId = part.Id,
+            Quantity = command.PurchaseQuantity,
+            UnitPrice = part.UnitPrice
+        });
 
-            await _inventoryRepository.AddStockChangeAsync(initialChange, cancellationToken);
-            await _inventoryRepository.SaveChangesAsync(cancellationToken);
-        }
-
-        return InventoryResult<InventoryItemDto>.Success(MapItem(item));
-    }
-
-    public async Task<InventoryResult<InventoryItemDto>> UpdateItemAsync(
-        int id,
-        UpsertInventoryItemCommand command,
-        CancellationToken cancellationToken = default)
-    {
-        var item = await _inventoryRepository.GetItemByIdAsync(id, cancellationToken);
-        if (item is null)
+        await _purchaseRepository.AddAsync(invoice, cancellationToken);
+        await _inventoryRepository.AddStockChangeAsync(new InventoryStockChange
         {
-            return InventoryResult<InventoryItemDto>.NotFound();
-        }
+            PartId = part.Id,
+            VendorId = vendor.Id,
+            ChangeType = "Purchase",
+            QuantityChanged = command.PurchaseQuantity,
+            QuantityAfterChange = part.CurrentStock,
+            ReferenceCode = invoiceNumber,
+            ChangedBy = changedBy,
+            Notes = remarks,
+            ChangedAt = DateTimeOffset.UtcNow
+        }, cancellationToken);
+        await _purchaseRepository.SaveChangesAsync(cancellationToken);
 
-        var validationErrors = await ValidateCommandAsync(command, id, cancellationToken);
-        if (validationErrors.Count > 0)
-        {
-            return InventoryResult<InventoryItemDto>.Failed(validationErrors);
-        }
-
-        var sanitized = SanitizeCommand(command);
-        var quantityDifference = sanitized.QuantityInStock - item.QuantityInStock;
-
-        item.PartNumber = sanitized.PartNumber;
-        item.Name = sanitized.Name;
-        item.Category = sanitized.Category;
-        item.VendorName = sanitized.VendorName;
-        item.StorageLocation = sanitized.StorageLocation;
-        item.QuantityInStock = sanitized.QuantityInStock;
-        item.ReorderLevel = sanitized.ReorderLevel;
-        item.UnitCost = sanitized.UnitCost;
-        item.UpdatedAt = DateTimeOffset.UtcNow;
-
-        await _inventoryRepository.SaveChangesAsync(cancellationToken);
-
-        if (quantityDifference != 0)
-        {
-            var stockChange = BuildStockChange(
-                item,
-                quantityDifference,
-                sanitized,
-                quantityDifference > 0 ? "Adjustment In" : "Adjustment Out",
-                $"ADJ-{item.Id:0000}");
-
-            await _inventoryRepository.AddStockChangeAsync(stockChange, cancellationToken);
-            await _inventoryRepository.SaveChangesAsync(cancellationToken);
-        }
-
-        return InventoryResult<InventoryItemDto>.Success(MapItem(item));
-    }
-
-    public async Task<InventoryResult<InventoryDeletedResponse>> DeleteItemAsync(
-        int id,
-        CancellationToken cancellationToken = default)
-    {
-        var item = await _inventoryRepository.GetItemByIdAsync(id, cancellationToken);
-        if (item is null)
-        {
-            return InventoryResult<InventoryDeletedResponse>.NotFound();
-        }
-
-        var response = new InventoryDeletedResponse(item.Id, item.Name);
-        _inventoryRepository.RemoveItem(item);
-        await _inventoryRepository.SaveChangesAsync(cancellationToken);
-
-        return InventoryResult<InventoryDeletedResponse>.Success(response);
+        var saved = await _purchaseRepository.GetByIdAsync(invoice.Id, cancellationToken);
+        return InventoryResult<PurchaseInvoiceDto>.Success(MapInvoice(saved!));
     }
 
     public async Task<IReadOnlyCollection<InventoryStockChangeDto>> GetRecentStockChangesAsync(
@@ -157,29 +125,75 @@ public sealed class InventoryService : IInventoryService
         return changes.Select(MapChange).ToArray();
     }
 
-    private static InventoryItemDto MapItem(InventoryItem item)
+    private async Task<IReadOnlyCollection<InventoryError>> ValidateAddStockCommandAsync(
+        AddStockCommand command,
+        CancellationToken cancellationToken)
+    {
+        var errors = new List<InventoryError>();
+
+        if (command.VendorId <= 0)
+        {
+            errors.Add(new InventoryError(nameof(command.VendorId), "Select an active vendor."));
+        }
+
+        if (command.PartId <= 0)
+        {
+            errors.Add(new InventoryError(nameof(command.PartId), "Select an active part."));
+        }
+
+        if (command.PurchaseQuantity <= 0)
+        {
+            errors.Add(new InventoryError(nameof(command.PurchaseQuantity), "Purchase quantity must be greater than zero."));
+        }
+
+        if (!string.IsNullOrWhiteSpace(command.InvoiceNumber) &&
+            await _purchaseRepository.InvoiceNumberExistsAsync(command.InvoiceNumber.Trim().ToUpperInvariant(), cancellationToken))
+        {
+            errors.Add(new InventoryError(nameof(command.InvoiceNumber), "This invoice number already exists."));
+        }
+
+        return errors;
+    }
+
+    private async Task<string> GenerateInvoiceNumberAsync(CancellationToken cancellationToken)
+    {
+        var counter = 1;
+        while (true)
+        {
+            var candidate = $"PUR-{counter:0000}";
+            if (!await _purchaseRepository.InvoiceNumberExistsAsync(candidate, cancellationToken))
+            {
+                return candidate;
+            }
+
+            counter++;
+        }
+    }
+
+    private static InventoryItemDto MapPart(Part part)
     {
         return new InventoryItemDto(
-            item.Id,
-            item.PartNumber,
-            item.Name,
-            item.Category,
-            item.VendorName,
-            item.StorageLocation,
-            item.QuantityInStock,
-            item.ReorderLevel,
-            item.UnitCost,
-            item.UpdatedAt,
-            item.QuantityInStock < item.ReorderLevel);
+            part.Id,
+            part.PartCode,
+            part.Name,
+            part.Category,
+            part.CompatibleVehicle,
+            part.CurrentStock,
+            part.MinimumStockLevel,
+            part.UnitPrice,
+            part.ImageUrl,
+            part.UpdatedAt,
+            GetStockStatus(part.CurrentStock, part.MinimumStockLevel));
     }
 
     private static InventoryStockChangeDto MapChange(InventoryStockChange change)
     {
         return new InventoryStockChangeDto(
             change.Id,
-            change.InventoryItemId,
-            change.InventoryItem.Name,
-            change.InventoryItem.PartNumber,
+            change.PartId,
+            change.Part.Name,
+            change.Part.PartCode,
+            change.Vendor.Name,
             change.ChangeType,
             change.QuantityChanged,
             change.QuantityAfterChange,
@@ -189,116 +203,36 @@ public sealed class InventoryService : IInventoryService
             change.ChangedAt);
     }
 
-    private async Task<IReadOnlyCollection<InventoryError>> ValidateCommandAsync(
-        UpsertInventoryItemCommand command,
-        int? existingId,
-        CancellationToken cancellationToken)
+    private static PurchaseInvoiceDto MapInvoice(PurchaseInvoice invoice)
     {
-        var errors = new List<InventoryError>();
-        var sanitized = SanitizeCommand(command);
+        var itemDtos = invoice.Items
+            .Select(item => new PurchaseInvoiceItemDto(
+                item.Id,
+                item.PartId,
+                item.Part?.PartCode ?? string.Empty,
+                item.Part?.Name ?? string.Empty,
+                item.Quantity,
+                item.UnitPrice,
+                item.Quantity * item.UnitPrice))
+            .ToArray();
 
-        if (string.IsNullOrWhiteSpace(sanitized.PartNumber))
-        {
-            errors.Add(new InventoryError(nameof(command.PartNumber), "Part number is required."));
-        }
-
-        if (string.IsNullOrWhiteSpace(sanitized.Name))
-        {
-            errors.Add(new InventoryError(nameof(command.Name), "Part name is required."));
-        }
-
-        if (string.IsNullOrWhiteSpace(sanitized.Category))
-        {
-            errors.Add(new InventoryError(nameof(command.Category), "Category is required."));
-        }
-
-        if (string.IsNullOrWhiteSpace(sanitized.VendorName))
-        {
-            errors.Add(new InventoryError(nameof(command.VendorName), "Vendor name is required."));
-        }
-
-        if (string.IsNullOrWhiteSpace(sanitized.StorageLocation))
-        {
-            errors.Add(new InventoryError(nameof(command.StorageLocation), "Storage location is required."));
-        }
-
-        if (string.IsNullOrWhiteSpace(sanitized.ChangedBy))
-        {
-            errors.Add(new InventoryError(nameof(command.ChangedBy), "Handled by is required."));
-        }
-
-        if (sanitized.QuantityInStock < 0)
-        {
-            errors.Add(new InventoryError(nameof(command.QuantityInStock), "Stock quantity cannot be negative."));
-        }
-
-        if (sanitized.ReorderLevel < 0)
-        {
-            errors.Add(new InventoryError(nameof(command.ReorderLevel), "Reorder level cannot be negative."));
-        }
-
-        if (sanitized.UnitCost < 0)
-        {
-            errors.Add(new InventoryError(nameof(command.UnitCost), "Unit cost cannot be negative."));
-        }
-
-        if (!string.IsNullOrWhiteSpace(sanitized.PartNumber) &&
-            await _inventoryRepository.PartNumberExistsAsync(
-                sanitized.PartNumber,
-                existingId,
-                cancellationToken))
-        {
-            errors.Add(new InventoryError(nameof(command.PartNumber), "This part number already exists."));
-        }
-
-        return errors;
+        return new PurchaseInvoiceDto(
+            invoice.Id,
+            invoice.InvoiceNumber,
+            invoice.VendorId,
+            invoice.VendorName,
+            invoice.InvoiceDate,
+            invoice.Status,
+            invoice.CreatedBy,
+            invoice.Notes,
+            invoice.CreatedAt,
+            itemDtos.Sum(i => i.SubTotal),
+            itemDtos);
     }
 
-    private static UpsertInventoryItemCommand SanitizeCommand(UpsertInventoryItemCommand command)
+    private static string GetStockStatus(int currentStock, int minimumStockLevel)
     {
-        return command with
-        {
-            PartNumber = command.PartNumber.Trim().ToUpperInvariant(),
-            Name = command.Name.Trim(),
-            Category = command.Category.Trim(),
-            VendorName = command.VendorName.Trim(),
-            StorageLocation = command.StorageLocation.Trim(),
-            ChangedBy = string.IsNullOrWhiteSpace(command.ChangedBy) ? DefaultChangedBy : command.ChangedBy.Trim(),
-            ReferenceCode = command.ReferenceCode.Trim(),
-            Notes = command.Notes.Trim(),
-            StockChangeType = command.StockChangeType.Trim()
-        };
-    }
-
-    private static InventoryStockChange BuildStockChange(
-        InventoryItem item,
-        int quantityChanged,
-        UpsertInventoryItemCommand command,
-        string fallbackType,
-        string fallbackReferenceCode)
-    {
-        var changeType = string.IsNullOrWhiteSpace(command.StockChangeType)
-            ? fallbackType
-            : command.StockChangeType;
-
-        var referenceCode = string.IsNullOrWhiteSpace(command.ReferenceCode)
-            ? fallbackReferenceCode
-            : command.ReferenceCode;
-
-        var notes = string.IsNullOrWhiteSpace(command.Notes)
-            ? "Inventory record updated from the administration panel."
-            : command.Notes;
-
-        return new InventoryStockChange
-        {
-            InventoryItemId = item.Id,
-            ChangeType = changeType,
-            QuantityChanged = quantityChanged,
-            QuantityAfterChange = item.QuantityInStock,
-            ReferenceCode = referenceCode,
-            ChangedBy = string.IsNullOrWhiteSpace(command.ChangedBy) ? DefaultChangedBy : command.ChangedBy,
-            Notes = notes,
-            ChangedAt = DateTimeOffset.UtcNow
-        };
+        if (currentStock == 0) return "Out of Stock";
+        return currentStock <= minimumStockLevel ? "Low Stock" : "In Stock";
     }
 }

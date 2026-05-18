@@ -1,9 +1,9 @@
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc;
 using Partivex.Application.Constants;
 using Partivex.Application.DTOs;
 using Partivex.Application.Interfaces;
+using System.ComponentModel.DataAnnotations;
 
 namespace Partivex.Controllers;
 
@@ -40,39 +40,12 @@ public class InventoryController : ControllerBase
         return Ok(changes);
     }
 
-    [HttpPost]
-    public async Task<ActionResult<InventoryItemDto>> CreateItem(
-        UpsertInventoryItemRequest request,
+    [HttpPost("stock")]
+    public async Task<ActionResult<PurchaseInvoiceDto>> AddStock(
+        AddStockRequest request,
         CancellationToken cancellationToken)
     {
-        var result = await _inventoryService.CreateItemAsync(request.ToCommand(), cancellationToken);
-        if (!result.Succeeded)
-        {
-            return ToResultProblem(result);
-        }
-
-        return Ok(result.Value);
-    }
-
-    [HttpPut("{id:int}")]
-    public async Task<ActionResult<InventoryItemDto>> UpdateItem(
-        int id,
-        UpsertInventoryItemRequest request,
-        CancellationToken cancellationToken)
-    {
-        var result = await _inventoryService.UpdateItemAsync(id, request.ToCommand(), cancellationToken);
-        if (!result.Succeeded)
-        {
-            return ToResultProblem(result);
-        }
-
-        return Ok(result.Value);
-    }
-
-    [HttpDelete("{id:int}")]
-    public async Task<ActionResult<InventoryDeletedResponse>> DeleteItem(int id, CancellationToken cancellationToken)
-    {
-        var result = await _inventoryService.DeleteItemAsync(id, cancellationToken);
+        var result = await _inventoryService.AddStockAsync(request.ToCommand(), cancellationToken);
         if (!result.Succeeded)
         {
             return ToResultProblem(result);
@@ -85,7 +58,7 @@ public class InventoryController : ControllerBase
     {
         if (result.IsNotFound)
         {
-            return NotFound(new { message = "Inventory item not found." });
+            return NotFound(new { message = "Active vendor or part not found." });
         }
 
         foreach (var error in result.Errors)
@@ -97,64 +70,37 @@ public class InventoryController : ControllerBase
     }
 }
 
-public sealed class UpsertInventoryItemRequest
+public sealed class AddStockRequest
 {
-    [Required]
+    [Range(1, int.MaxValue)]
+    public int VendorId { get; init; }
+
+    [Range(1, int.MaxValue)]
+    public int PartId { get; init; }
+
+    [Range(1, int.MaxValue)]
+    public int PurchaseQuantity { get; init; }
+
+    public DateTimeOffset PurchaseDate { get; init; } = DateTimeOffset.UtcNow;
+
     [MaxLength(40)]
-    public string PartNumber { get; init; } = string.Empty;
+    public string InvoiceNumber { get; init; } = string.Empty;
 
-    [Required]
-    [MaxLength(120)]
-    public string Name { get; init; } = string.Empty;
-
-    [Required]
-    [MaxLength(80)]
-    public string Category { get; init; } = string.Empty;
-
-    [Required]
-    [MaxLength(120)]
-    public string VendorName { get; init; } = string.Empty;
-
-    [Required]
-    [MaxLength(80)]
-    public string StorageLocation { get; init; } = string.Empty;
-
-    [Range(0, int.MaxValue)]
-    public int QuantityInStock { get; init; }
-
-    [Range(0, int.MaxValue)]
-    public int ReorderLevel { get; init; }
-
-    [Range(typeof(decimal), "0", "9999999999")]
-    public decimal UnitCost { get; init; }
-
-    [Required]
     [MaxLength(120)]
     public string ChangedBy { get; init; } = string.Empty;
 
-    [MaxLength(40)]
-    public string ReferenceCode { get; init; } = string.Empty;
+    [MaxLength(500)]
+    public string Remarks { get; init; } = string.Empty;
 
-    [MaxLength(240)]
-    public string Notes { get; init; } = string.Empty;
-
-    [MaxLength(40)]
-    public string StockChangeType { get; init; } = string.Empty;
-
-    public UpsertInventoryItemCommand ToCommand()
+    public AddStockCommand ToCommand()
     {
-        return new UpsertInventoryItemCommand(
-            PartNumber,
-            Name,
-            Category,
-            VendorName,
-            StorageLocation,
-            QuantityInStock,
-            ReorderLevel,
-            UnitCost,
+        return new AddStockCommand(
+            VendorId,
+            PartId,
+            PurchaseQuantity,
+            PurchaseDate,
+            InvoiceNumber,
             ChangedBy,
-            ReferenceCode,
-            Notes,
-            StockChangeType);
+            Remarks);
     }
 }

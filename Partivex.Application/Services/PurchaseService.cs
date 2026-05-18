@@ -7,12 +7,17 @@ namespace Partivex.Application.Services;
 public sealed class PurchaseService : IPurchaseService
 {
     private readonly IPurchaseRepository _purchaseRepository;
-    private readonly IInventoryRepository _inventoryRepository;
+    private readonly IPartRepository _partRepository;
+    private readonly IVendorRepository _vendorRepository;
 
-    public PurchaseService(IPurchaseRepository purchaseRepository, IInventoryRepository inventoryRepository)
+    public PurchaseService(
+        IPurchaseRepository purchaseRepository,
+        IPartRepository partRepository,
+        IVendorRepository vendorRepository)
     {
         _purchaseRepository = purchaseRepository;
-        _inventoryRepository = inventoryRepository;
+        _partRepository = partRepository;
+        _vendorRepository = vendorRepository;
     }
 
     public async Task<IReadOnlyCollection<PurchaseInvoiceDto>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -39,12 +44,19 @@ public sealed class PurchaseService : IPurchaseService
             return PurchaseResult<PurchaseInvoiceDto>.Failed(errors);
         }
 
+        var vendor = await _vendorRepository.GetActiveByIdAsync(command.VendorId, cancellationToken);
+        if (vendor is null)
+        {
+            return PurchaseResult<PurchaseInvoiceDto>.NotFound();
+        }
+
         var invoice = new PurchaseInvoice
         {
             InvoiceNumber = command.InvoiceNumber.Trim().ToUpperInvariant(),
-            VendorName = command.VendorName.Trim(),
+            VendorId = vendor.Id,
+            VendorName = vendor.Name,
             InvoiceDate = command.InvoiceDate,
-            Status = "Draft",
+            Status = "Confirmed",
             CreatedBy = command.CreatedBy.Trim(),
             Notes = command.Notes.Trim(),
             CreatedAt = DateTimeOffset.UtcNow
@@ -52,17 +64,17 @@ public sealed class PurchaseService : IPurchaseService
 
         foreach (var line in command.Lines)
         {
-            var inventoryItem = await _inventoryRepository.GetItemByIdAsync(line.InventoryItemId, cancellationToken);
-            if (inventoryItem is null)
+            var part = await _partRepository.GetActiveByIdAsync(line.PartId, cancellationToken);
+            if (part is null)
             {
                 continue;
             }
 
             invoice.Items.Add(new PurchaseInvoiceItem
             {
-                InventoryItemId = line.InventoryItemId,
+                PartId = line.PartId,
                 Quantity = line.Quantity,
-                UnitCost = line.UnitCost
+                UnitPrice = part.UnitPrice
             });
         }
 
@@ -73,54 +85,12 @@ public sealed class PurchaseService : IPurchaseService
         return PurchaseResult<PurchaseInvoiceDto>.Success(MapInvoice(saved!));
     }
 
-    public async Task<PurchaseResult<PurchaseInvoiceDto>> ConfirmAsync(int id, CancellationToken cancellationToken = default)
+    public Task<PurchaseResult<PurchaseInvoiceDto>> ConfirmAsync(int id, CancellationToken cancellationToken = default)
     {
-        var invoice = await _purchaseRepository.GetByIdAsync(id, cancellationToken);
-        if (invoice is null)
-        {
-            return PurchaseResult<PurchaseInvoiceDto>.NotFound();
-        }
-
-        if (invoice.Status == "Confirmed")
-        {
-            return PurchaseResult<PurchaseInvoiceDto>.Failed(
-            [
-                new PurchaseError("Status", "This invoice has already been confirmed.")
-            ]);
-        }
-
-        invoice.Status = "Confirmed";
-
-        foreach (var line in invoice.Items)
-        {
-            var inventoryItem = await _inventoryRepository.GetItemByIdAsync(line.InventoryItemId, cancellationToken);
-            if (inventoryItem is null)
-            {
-                continue;
-            }
-
-            inventoryItem.QuantityInStock += line.Quantity;
-            inventoryItem.UpdatedAt = DateTimeOffset.UtcNow;
-
-            var stockChange = new InventoryStockChange
-            {
-                InventoryItemId = inventoryItem.Id,
-                ChangeType = "Purchase",
-                QuantityChanged = line.Quantity,
-                QuantityAfterChange = inventoryItem.QuantityInStock,
-                ReferenceCode = invoice.InvoiceNumber,
-                ChangedBy = invoice.CreatedBy,
-                Notes = $"Stock received from purchase invoice {invoice.InvoiceNumber} — {invoice.VendorName}.",
-                ChangedAt = DateTimeOffset.UtcNow
-            };
-
-            await _inventoryRepository.AddStockChangeAsync(stockChange, cancellationToken);
-        }
-
-        await _purchaseRepository.SaveChangesAsync(cancellationToken);
-        await _inventoryRepository.SaveChangesAsync(cancellationToken);
-
-        return PurchaseResult<PurchaseInvoiceDto>.Success(MapInvoice(invoice));
+        return Task.FromResult(PurchaseResult<PurchaseInvoiceDto>.Failed(
+        [
+            new PurchaseError("Status", "Purchase invoices are created automatically when stock is added.")
+        ]));
     }
 
     public async Task<PurchaseResult<int>> DeleteAsync(int id, CancellationToken cancellationToken = default)
@@ -129,14 +99,6 @@ public sealed class PurchaseService : IPurchaseService
         if (invoice is null)
         {
             return PurchaseResult<int>.NotFound();
-        }
-
-        if (invoice.Status == "Confirmed")
-        {
-            return PurchaseResult<int>.Failed(
-            [
-                new PurchaseError("Status", "Confirmed invoices cannot be deleted.")
-            ]);
         }
 
         _purchaseRepository.Remove(invoice);
@@ -156,9 +118,9 @@ public sealed class PurchaseService : IPurchaseService
             errors.Add(new PurchaseError(nameof(command.InvoiceNumber), "Invoice number is required."));
         }
 
-        if (string.IsNullOrWhiteSpace(command.VendorName))
+        if (command.VendorId <= 0)
         {
-            errors.Add(new PurchaseError(nameof(command.VendorName), "Vendor name is required."));
+            errors.Add(new PurchaseError(nameof(command.VendorId), "Vendor is required."));
         }
 
         if (string.IsNullOrWhiteSpace(command.CreatedBy))
@@ -173,10 +135,6 @@ public sealed class PurchaseService : IPurchaseService
         else if (command.Lines.Any(l => l.Quantity <= 0))
         {
             errors.Add(new PurchaseError("Lines", "All line items must have a quantity greater than zero."));
-        }
-        else if (command.Lines.Any(l => l.UnitCost < 0))
-        {
-            errors.Add(new PurchaseError("Lines", "Unit cost cannot be negative."));
         }
 
         if (!string.IsNullOrWhiteSpace(command.InvoiceNumber) &&
@@ -194,17 +152,18 @@ public sealed class PurchaseService : IPurchaseService
         var itemDtos = invoice.Items
             .Select(item => new PurchaseInvoiceItemDto(
                 item.Id,
-                item.InventoryItemId,
-                item.InventoryItem?.PartNumber ?? string.Empty,
-                item.InventoryItem?.Name ?? string.Empty,
+                item.PartId,
+                item.Part?.PartCode ?? string.Empty,
+                item.Part?.Name ?? string.Empty,
                 item.Quantity,
-                item.UnitCost,
-                item.Quantity * item.UnitCost))
+                item.UnitPrice,
+                item.Quantity * item.UnitPrice))
             .ToArray();
 
         return new PurchaseInvoiceDto(
             invoice.Id,
             invoice.InvoiceNumber,
+            invoice.VendorId,
             invoice.VendorName,
             invoice.InvoiceDate,
             invoice.Status,

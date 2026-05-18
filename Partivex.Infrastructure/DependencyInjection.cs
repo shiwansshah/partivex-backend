@@ -75,6 +75,7 @@ public static class DependencyInjection
         services.AddAuthorization();
         services.AddHttpContextAccessor(); // Registers HTTP context accessor.
         services.AddScoped<IJwtService, JwtService>();
+        services.AddScoped<IPartRepository, PartRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IVehicleRepository, VehicleRepository>();
         services.AddScoped<ICustomerAppointmentRepository, CustomerAppointmentRepository>();
@@ -85,6 +86,7 @@ public static class DependencyInjection
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
         services.AddScoped<IStaffService, StaffService>(); // Registers staff service.
         services.AddScoped<ICustomerService, CustomerService>(); // Registers customer service.
+        services.AddScoped<IVendorRepository, VendorRepository>();
 
         return services;
     }
