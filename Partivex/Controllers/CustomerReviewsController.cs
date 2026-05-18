@@ -27,6 +27,14 @@ public sealed class CustomerReviewsController : ControllerBase
         return Ok(reviews);
     }
 
+    [HttpGet("community")]
+    public async Task<ActionResult<IReadOnlyList<CommunityReviewListDto>>> GetCommunityReviews(CancellationToken cancellationToken)
+    {
+        var reviews = await _reviewService.GetCommunityReviewsAsync(GetCustomerId(), cancellationToken);
+
+        return Ok(reviews);
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ReviewDetailDto>> GetReview(Guid id, CancellationToken cancellationToken)
     {

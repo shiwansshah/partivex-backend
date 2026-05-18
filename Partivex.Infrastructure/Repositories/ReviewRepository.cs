@@ -26,6 +26,16 @@ public sealed class ReviewRepository : IReviewRepository
             .ToArrayAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Review>> GetCommunityReviewsAsync(CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Reviews
+            .AsNoTracking()
+            .Include(review => review.Customer)
+            .Include(review => review.Appointment)
+            .OrderByDescending(review => review.CreatedAt)
+            .ToArrayAsync(cancellationToken);
+    }
+
     public Task<Review?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return _dbContext.Reviews

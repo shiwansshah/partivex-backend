@@ -6,6 +6,10 @@ public interface IReviewService
 {
     Task<IReadOnlyList<ReviewListDto>> GetReviewsAsync(string customerId, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<CommunityReviewListDto>> GetCommunityReviewsAsync(
+        string customerId,
+        CancellationToken cancellationToken = default);
+
     Task<CustomerPortalResult<ReviewDetailDto>> GetReviewAsync(
         Guid id,
         string customerId,

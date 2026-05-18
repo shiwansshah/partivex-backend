@@ -157,6 +157,18 @@ public sealed record ReviewListDto(
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
 
+public sealed record CommunityReviewListDto(
+    Guid Id,
+    string CustomerName,
+    bool IsOwnReview,
+    string Category,
+    string? ServiceType,
+    DateOnly? AppointmentDate,
+    string? AppointmentStatus,
+    int Rating,
+    string Comment,
+    DateTimeOffset CreatedAt);
+
 public sealed record ReviewDetailDto(
     Guid Id,
     Guid? AppointmentId,
