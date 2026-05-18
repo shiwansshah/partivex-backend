@@ -6,6 +6,8 @@ public interface IReviewRepository
 {
     Task<IReadOnlyList<Review>> GetByCustomerIdAsync(string customerId, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Review>> GetCommunityReviewsAsync(CancellationToken cancellationToken = default);
+
     Task<Review?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<bool> ExistsForAppointmentAsync(

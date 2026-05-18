@@ -25,6 +25,15 @@ public sealed class ReviewService : IReviewService
         return reviews.Select(MapList).ToArray();
     }
 
+    public async Task<IReadOnlyList<CommunityReviewListDto>> GetCommunityReviewsAsync(
+        string customerId,
+        CancellationToken cancellationToken = default)
+    {
+        var reviews = await _reviewRepository.GetCommunityReviewsAsync(cancellationToken);
+
+        return reviews.Select(review => MapCommunityList(review, customerId)).ToArray();
+    }
+
     public async Task<CustomerPortalResult<ReviewDetailDto>> GetReviewAsync(
         Guid id,
         string customerId,
@@ -170,6 +179,22 @@ public sealed class ReviewService : IReviewService
             review.Comment,
             review.CreatedAt,
             review.UpdatedAt);
+    }
+
+    private static CommunityReviewListDto MapCommunityList(Review review, string customerId)
+    {
+        return new CommunityReviewListDto(
+            review.Id,
+            review.AppointmentId,
+            string.IsNullOrWhiteSpace(review.Customer.FullName) ? "Partivex customer" : review.Customer.FullName,
+            review.CustomerId == customerId,
+            review.Category.ToString(),
+            review.Appointment?.ServiceType,
+            review.Appointment is null ? null : DateOnly.FromDateTime(review.Appointment.PreferredAt.DateTime),
+            review.Appointment?.Status.ToString(),
+            review.Rating,
+            review.Comment,
+            review.CreatedAt);
     }
 
     private static ReviewDetailDto MapDetail(Review review)
