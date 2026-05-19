@@ -1,11 +1,15 @@
 using System;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using Partivex.Infrastructure.Data;
 
 #nullable disable
 
 namespace Partivex.Infrastructure.Migrations
 {
+    [DbContext(typeof(AppDbContext))]
+    [Migration("20260519090000_AddAppointmentInvoicesAndSmtpSettings")]
     public partial class AddAppointmentInvoicesAndSmtpSettings : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
