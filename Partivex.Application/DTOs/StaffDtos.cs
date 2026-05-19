@@ -12,7 +12,8 @@ public sealed record CreateStaffDto( // Defines staff creation DTO.
     string Email, // Carries staff email.
     [Required] // Requires password.
     [MinLength(6)] // Enforces minimum password length.
-    string Password); // Carries staff password.
+    string Password, // Carries staff password.
+    IReadOnlyCollection<string>? FeatureKeys = null); // Carries optional feature access keys.
 
 public sealed record UpdateStaffDto( // Defines staff update DTO.
     [Required] // Requires full name.

@@ -3,6 +3,7 @@ using Partivex.Application.Constants; // Imports role constants.
 using Partivex.Application.DTOs; // Imports staff DTOs.
 using Partivex.Application.Interfaces; // Imports service contract.
 using Partivex.Domain.Entities; // Imports application user.
+using Partivex.Infrastructure.Data; // Imports database context.
 
 namespace Partivex.Infrastructure.Services; // Defines service namespace.
 
@@ -10,13 +11,16 @@ public sealed class StaffService : IStaffService // Implements staff service.
 {
     private readonly UserManager<ApplicationUser> _userManager; // Stores user manager.
     private readonly RoleManager<IdentityRole> _roleManager; // Stores role manager.
+    private readonly AppDbContext _dbContext; // Stores database context.
 
     public StaffService( // Defines constructor.
         UserManager<ApplicationUser> userManager, // Receives user manager.
-        RoleManager<IdentityRole> roleManager) // Receives role manager.
+        RoleManager<IdentityRole> roleManager, // Receives role manager.
+        AppDbContext dbContext) // Receives database context.
     {
         _userManager = userManager; // Assigns user manager.
         _roleManager = roleManager; // Assigns role manager.
+        _dbContext = dbContext; // Assigns database context.
     }
 
     public async Task<StaffDto> CreateStaffAsync(CreateStaffDto dto) // Creates staff user.
@@ -26,6 +30,8 @@ public sealed class StaffService : IStaffService // Implements staff service.
         var fullName = NormalizeRequired(dto.FullName, nameof(dto.FullName)); // Normalizes full name.
 
         var email = NormalizeRequired(dto.Email, nameof(dto.Email)); // Normalizes email.
+
+        var enabledFeatureKeys = NormalizeFeatureKeys(dto.FeatureKeys); // Validates feature access keys.
 
         var existingUser = await _userManager.FindByEmailAsync(email); // Checks duplicate email.
 
@@ -41,6 +47,8 @@ public sealed class StaffService : IStaffService // Implements staff service.
             FullName = fullName // Sets full name.
         };
 
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync(); // Starts staff creation transaction.
+
         var createResult = await _userManager.CreateAsync(user, dto.Password); // Creates identity user.
 
         if (!createResult.Succeeded) // Handles create failure.
@@ -52,10 +60,14 @@ public sealed class StaffService : IStaffService // Implements staff service.
 
         if (!roleResult.Succeeded) // Handles role failure.
         {
-            await _userManager.DeleteAsync(user); // Rolls back user.
+            await transaction.RollbackAsync(); // Rolls back created user.
 
             throw new InvalidOperationException(ToErrorMessage(roleResult)); // Reports role errors.
         }
+
+        await AddInitialFeatureAccessAsync(user.Id, enabledFeatureKeys); // Saves selected feature access.
+
+        await transaction.CommitAsync(); // Commits staff creation.
 
         return MapToStaffDto(user); // Returns staff DTO.
     }
@@ -146,6 +158,50 @@ public sealed class StaffService : IStaffService // Implements staff service.
         }
 
         return value.Trim(); // Returns trimmed value.
+    }
+
+    private static IReadOnlyCollection<string> NormalizeFeatureKeys(IReadOnlyCollection<string>? featureKeys) // Validates feature keys.
+    {
+        if (featureKeys is null || featureKeys.Count == 0) // Allows no initial access.
+        {
+            return Array.Empty<string>(); // Returns empty access list.
+        }
+
+        var normalizedKeys = featureKeys
+            .Where(featureKey => !string.IsNullOrWhiteSpace(featureKey))
+            .Select(featureKey => featureKey.Trim())
+            .Distinct()
+            .ToArray();
+
+        var unknownFeatureKey = normalizedKeys.FirstOrDefault(featureKey => !StaffFeatureKeys.IsKnown(featureKey));
+
+        if (unknownFeatureKey is not null) // Handles invalid access key.
+        {
+            throw new ArgumentException($"Unknown staff feature key: {unknownFeatureKey}."); // Stops invalid access.
+        }
+
+        return normalizedKeys; // Returns allowed feature keys.
+    }
+
+    private async Task AddInitialFeatureAccessAsync(string userId, IReadOnlyCollection<string> enabledFeatureKeys) // Saves initial access.
+    {
+        if (enabledFeatureKeys.Count == 0) // Keeps no selected features as no rows.
+        {
+            return; // Nothing to persist.
+        }
+
+        var now = DateTimeOffset.UtcNow; // Captures one timestamp.
+        var rows = enabledFeatureKeys.Select(featureKey => new StaffFeatureAccess
+        {
+            UserId = userId,
+            FeatureKey = featureKey,
+            IsEnabled = true,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        await _dbContext.StaffFeatureAccesses.AddRangeAsync(rows); // Adds selected access rows.
+        await _dbContext.SaveChangesAsync(); // Persists selected access rows.
     }
 
     private static string ToErrorMessage(IdentityResult result) // Formats identity errors.
