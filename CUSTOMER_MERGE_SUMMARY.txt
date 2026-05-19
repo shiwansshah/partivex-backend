@@ -1,0 +1,25 @@
+Branch merged from: aayush-task
+Current branch name: shiwans-mergeTest
+
+Files changed:
+- CUSTOMER_MERGE_SUMMARY.txt
+
+What was imported:
+- No backend source files were replaced from origin/aayush-task because that branch does not contain a backend customer management or customer vehicle management implementation to import.
+- Verified the current backend already exposes staff-enabled customer and vehicle management APIs:
+  - CustomersController uses ApplicationRoles.AdminAndStaff for customer list/details/history.
+  - VehicleController uses ApplicationRoles.AdminAndStaff for customer vehicle list/create/update/delete endpoints.
+  - AuthController allows ApplicationRoles.AdminAndStaff to create customers through /auth/create-customer.
+
+What was intentionally not changed:
+- Did not run a full merge.
+- Did not delete or downgrade current backend customer/vehicle APIs to match missing aayush-task backend files.
+- Did not change unrelated auth, inventory, purchase, staff, admin, migration, or configuration files.
+
+Conflicts or assumptions:
+- No Git conflicts occurred.
+- origin/aayush-task is the source branch reference inspected.
+- Since the backend already permits Staff for this module, no role patch was needed there.
+
+Build/test status:
+- dotnet build Partivex.slnx -p:OutDir=D:\AppDevCW\Sem2\partivex-backend\.codex-build\bin\: succeeded with 0 warnings and 0 errors.

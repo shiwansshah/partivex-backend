@@ -14,6 +14,16 @@ public sealed class CustomerAppointmentRepository : ICustomerAppointmentReposito
         _dbContext = dbContext;
     }
 
+    public async Task<IReadOnlyList<Appointment>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Appointments
+            .AsNoTracking()
+            .Include(appointment => appointment.Customer)
+            .Include(appointment => appointment.Vehicle)
+            .OrderByDescending(appointment => appointment.PreferredAt)
+            .ToArrayAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<Appointment>> GetByCustomerIdAsync(
         string customerId,
         CancellationToken cancellationToken = default)
@@ -29,6 +39,7 @@ public sealed class CustomerAppointmentRepository : ICustomerAppointmentReposito
     public Task<Appointment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         return _dbContext.Appointments
+            .Include(appointment => appointment.Customer)
             .Include(appointment => appointment.Vehicle)
             .FirstOrDefaultAsync(appointment => appointment.Id == id, cancellationToken);
     }

@@ -6,6 +6,8 @@ public interface IPartRequestRepository
 {
     Task<IReadOnlyList<PartRequest>> GetByCustomerIdAsync(string customerId, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<PartRequest>> GetPendingAsync(CancellationToken cancellationToken = default);
+
     Task<PartRequest?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task AddAsync(PartRequest partRequest, CancellationToken cancellationToken = default);

@@ -19,6 +19,11 @@ public sealed class UserRepository : IUserRepository
         return _userManager.FindByEmailAsync(email);
     }
 
+    public Task<ApplicationUser?> FindByIdAsync(string id)
+    {
+        return _userManager.FindByIdAsync(id);
+    }
+
     public Task<bool> CheckPasswordAsync(ApplicationUser user, string password)
     {
         return _userManager.CheckPasswordAsync(user, password);

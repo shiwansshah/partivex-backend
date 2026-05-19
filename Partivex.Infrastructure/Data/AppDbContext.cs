@@ -29,6 +29,18 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<PurchaseInvoiceItem> PurchaseInvoiceItems => Set<PurchaseInvoiceItem>();
 
+    public DbSet<CustomerPartPurchaseInvoice> CustomerPartPurchaseInvoices => Set<CustomerPartPurchaseInvoice>();
+
+    public DbSet<CustomerPartPurchaseInvoiceItem> CustomerPartPurchaseInvoiceItems => Set<CustomerPartPurchaseInvoiceItem>();
+
+    public DbSet<AppointmentInvoice> AppointmentInvoices => Set<AppointmentInvoice>();
+
+    public DbSet<SmtpSetting> SmtpSettings => Set<SmtpSetting>();
+
+    public DbSet<Vendor> Vendors { get; set; }
+
+    public DbSet<Part> Parts { get; set; }
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -52,6 +64,29 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.HasIndex(item => item.PartNumber).IsUnique();
         });
 
+        builder.Entity<Vendor>(entity =>
+        {
+            entity.ToTable("Vendors");
+            entity.Property(vendor => vendor.Name).IsRequired().HasMaxLength(120);
+            entity.Property(vendor => vendor.ContactPerson).IsRequired().HasMaxLength(120);
+            entity.Property(vendor => vendor.Phone).IsRequired().HasMaxLength(30);
+            entity.Property(vendor => vendor.Email).IsRequired().HasMaxLength(160);
+            entity.Property(vendor => vendor.Address).IsRequired().HasMaxLength(240);
+            entity.HasIndex(vendor => vendor.Email).IsUnique();
+        });
+
+        builder.Entity<Part>(entity =>
+        {
+            entity.ToTable("Parts");
+            entity.Property(part => part.Name).IsRequired().HasMaxLength(120);
+            entity.Property(part => part.PartCode).IsRequired().HasMaxLength(40);
+            entity.Property(part => part.Category).IsRequired().HasMaxLength(80);
+            entity.Property(part => part.CompatibleVehicle).HasMaxLength(120);
+            entity.Property(part => part.UnitPrice).HasPrecision(18, 2);
+            entity.Property(part => part.ImageUrl).HasMaxLength(500);
+            entity.HasIndex(part => part.PartCode).IsUnique();
+        });
+
         builder.Entity<PurchaseInvoice>(entity =>
         {
             entity.ToTable("PurchaseInvoices");
@@ -61,19 +96,23 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(inv => inv.CreatedBy).HasMaxLength(120);
             entity.Property(inv => inv.Notes).HasMaxLength(500);
             entity.HasIndex(inv => inv.InvoiceNumber).IsUnique();
+            entity.HasOne(inv => inv.Vendor)
+                .WithMany()
+                .HasForeignKey(inv => inv.VendorId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<PurchaseInvoiceItem>(entity =>
         {
             entity.ToTable("PurchaseInvoiceItems");
-            entity.Property(item => item.UnitCost).HasPrecision(18, 2);
+            entity.Property(item => item.UnitPrice).HasPrecision(18, 2);
             entity.HasOne(item => item.PurchaseInvoice)
                 .WithMany(inv => inv.Items)
                 .HasForeignKey(item => item.PurchaseInvoiceId)
                 .OnDelete(DeleteBehavior.Cascade);
-            entity.HasOne(item => item.InventoryItem)
+            entity.HasOne(item => item.Part)
                 .WithMany()
-                .HasForeignKey(item => item.InventoryItemId)
+                .HasForeignKey(item => item.PartId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
@@ -84,10 +123,14 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(change => change.ReferenceCode).HasMaxLength(40);
             entity.Property(change => change.ChangedBy).HasMaxLength(120);
             entity.Property(change => change.Notes).HasMaxLength(240);
-            entity.HasOne(change => change.InventoryItem)
+            entity.HasOne(change => change.Part)
                 .WithMany(item => item.StockChanges)
-                .HasForeignKey(change => change.InventoryItemId)
+                .HasForeignKey(change => change.PartId)
                 .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(change => change.Vendor)
+                .WithMany()
+                .HasForeignKey(change => change.VendorId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<Vehicle>(entity =>
@@ -142,6 +185,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
             entity.HasIndex(request => request.CustomerId);
             entity.HasIndex(request => request.VehicleId);
+            entity.HasIndex(request => request.PartId);
             entity.HasIndex(request => request.Status);
 
             entity.HasOne(request => request.Customer)
@@ -153,6 +197,92 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                 .WithMany()
                 .HasForeignKey(request => request.VehicleId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(request => request.Part)
+                .WithMany()
+                .HasForeignKey(request => request.PartId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<CustomerPartPurchaseInvoice>(entity =>
+        {
+            entity.ToTable("CustomerPartPurchaseInvoices");
+            entity.Property(invoice => invoice.InvoiceNumber).IsRequired().HasMaxLength(40);
+            entity.Property(invoice => invoice.CustomerName).IsRequired().HasMaxLength(120);
+            entity.Property(invoice => invoice.CustomerEmail).HasMaxLength(160);
+            entity.Property(invoice => invoice.Source).IsRequired().HasMaxLength(40);
+            entity.Property(invoice => invoice.Status).IsRequired().HasMaxLength(24);
+            entity.Property(invoice => invoice.CreatedBy).HasMaxLength(120);
+            entity.Property(invoice => invoice.SubTotal).HasPrecision(18, 2);
+            entity.Property(invoice => invoice.DiscountAmount).HasPrecision(18, 2);
+            entity.Property(invoice => invoice.TotalAmount).HasPrecision(18, 2);
+            entity.HasIndex(invoice => invoice.InvoiceNumber).IsUnique();
+            entity.HasIndex(invoice => invoice.CustomerId);
+            entity.HasIndex(invoice => invoice.PartRequestId);
+
+            entity.HasOne(invoice => invoice.Customer)
+                .WithMany()
+                .HasForeignKey(invoice => invoice.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(invoice => invoice.PartRequest)
+                .WithMany()
+                .HasForeignKey(invoice => invoice.PartRequestId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<CustomerPartPurchaseInvoiceItem>(entity =>
+        {
+            entity.ToTable("CustomerPartPurchaseInvoiceItems");
+            entity.Property(item => item.PartCode).IsRequired().HasMaxLength(40);
+            entity.Property(item => item.PartName).IsRequired().HasMaxLength(120);
+            entity.Property(item => item.UnitPrice).HasPrecision(18, 2);
+            entity.Property(item => item.SubTotal).HasPrecision(18, 2);
+
+            entity.HasOne(item => item.CustomerPartPurchaseInvoice)
+                .WithMany(invoice => invoice.Items)
+                .HasForeignKey(item => item.CustomerPartPurchaseInvoiceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(item => item.Part)
+                .WithMany()
+                .HasForeignKey(item => item.PartId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<AppointmentInvoice>(entity =>
+        {
+            entity.ToTable("AppointmentInvoices");
+            entity.Property(invoice => invoice.InvoiceNumber).IsRequired().HasMaxLength(40);
+            entity.Property(invoice => invoice.CustomerName).IsRequired().HasMaxLength(120);
+            entity.Property(invoice => invoice.CustomerEmail).HasMaxLength(160);
+            entity.Property(invoice => invoice.ServiceType).IsRequired().HasMaxLength(100);
+            entity.Property(invoice => invoice.VehicleName).HasMaxLength(100);
+            entity.Property(invoice => invoice.VehicleNumber).HasMaxLength(50);
+            entity.Property(invoice => invoice.PaymentStatus).IsRequired().HasMaxLength(24);
+            entity.Property(invoice => invoice.Notes).HasMaxLength(500);
+            entity.Property(invoice => invoice.CreatedBy).HasMaxLength(120);
+            entity.Property(invoice => invoice.Amount).HasPrecision(18, 2);
+            entity.HasIndex(invoice => invoice.InvoiceNumber).IsUnique();
+            entity.HasIndex(invoice => invoice.CustomerId);
+            entity.HasIndex(invoice => invoice.AppointmentId);
+            entity.HasIndex(invoice => invoice.PaymentStatus);
+
+            entity.HasOne(invoice => invoice.Appointment)
+                .WithMany()
+                .HasForeignKey(invoice => invoice.AppointmentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(invoice => invoice.Customer)
+                .WithMany()
+                .HasForeignKey(invoice => invoice.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<SmtpSetting>(entity =>
+        {
+            entity.ToTable("SmtpSettings");
+            entity.Property(setting => setting.SenderEmail).IsRequired().HasMaxLength(160);
         });
 
         builder.Entity<Review>(entity =>

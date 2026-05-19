@@ -81,6 +81,8 @@ public sealed record AppointmentResponseDto(string Message, AppointmentDetailDto
 
 public sealed class CreatePartRequestDto
 {
+    public int? PartId { get; init; }
+
     [Required]
     [MaxLength(120)]
     public string? PartName { get; init; }
@@ -102,6 +104,7 @@ public sealed record PartRequestListDto(
     Guid? VehicleId,
     string? VehicleName,
     string? VehicleNumber,
+    int? PartId,
     string PartName,
     string? BrandModelSpecification,
     int Quantity,
@@ -113,6 +116,7 @@ public sealed record PartRequestDetailDto(
     Guid? VehicleId,
     string? VehicleName,
     string? VehicleNumber,
+    int? PartId,
     string PartName,
     string? BrandModelSpecification,
     int Quantity,

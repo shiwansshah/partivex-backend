@@ -14,42 +14,18 @@ public sealed class InventoryRepository : IInventoryRepository
         _dbContext = dbContext;
     }
 
-    public async Task<IReadOnlyCollection<InventoryItem>> GetItemsAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyCollection<Part>> GetPartsAsync(CancellationToken cancellationToken = default)
     {
-        return await _dbContext.InventoryItems
+        return await _dbContext.Parts
             .AsNoTracking()
-            .OrderBy(item => item.Name)
+            .Where(part => part.IsActive)
+            .OrderBy(part => part.Name)
             .ToArrayAsync(cancellationToken);
-    }
-
-    public Task<InventoryItem?> GetItemByIdAsync(int id, CancellationToken cancellationToken = default)
-    {
-        return _dbContext.InventoryItems.FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
-    }
-
-    public Task<bool> PartNumberExistsAsync(
-        string partNumber,
-        int? excludingId = null,
-        CancellationToken cancellationToken = default)
-    {
-        return _dbContext.InventoryItems.AnyAsync(
-            item => item.PartNumber == partNumber && (!excludingId.HasValue || item.Id != excludingId.Value),
-            cancellationToken);
-    }
-
-    public async Task AddItemAsync(InventoryItem item, CancellationToken cancellationToken = default)
-    {
-        await _dbContext.InventoryItems.AddAsync(item, cancellationToken);
     }
 
     public async Task AddStockChangeAsync(InventoryStockChange stockChange, CancellationToken cancellationToken = default)
     {
         await _dbContext.InventoryStockChanges.AddAsync(stockChange, cancellationToken);
-    }
-
-    public void RemoveItem(InventoryItem item)
-    {
-        _dbContext.InventoryItems.Remove(item);
     }
 
     public Task SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -63,7 +39,8 @@ public sealed class InventoryRepository : IInventoryRepository
     {
         return await _dbContext.InventoryStockChanges
             .AsNoTracking()
-            .Include(change => change.InventoryItem)
+            .Include(change => change.Part)
+            .Include(change => change.Vendor)
             .OrderByDescending(change => change.ChangedAt)
             .Take(take)
             .ToArrayAsync(cancellationToken);

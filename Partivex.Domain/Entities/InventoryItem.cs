@@ -22,5 +22,4 @@ public class InventoryItem
 
     public DateTimeOffset UpdatedAt { get; set; }
 
-    public ICollection<InventoryStockChange> StockChanges { get; set; } = [];
 }

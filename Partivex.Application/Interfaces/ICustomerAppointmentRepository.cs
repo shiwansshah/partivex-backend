@@ -4,6 +4,8 @@ namespace Partivex.Application.Interfaces;
 
 public interface ICustomerAppointmentRepository
 {
+    Task<IReadOnlyList<Appointment>> GetAllAsync(CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<Appointment>> GetByCustomerIdAsync(string customerId, CancellationToken cancellationToken = default);
 
     Task<Appointment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);

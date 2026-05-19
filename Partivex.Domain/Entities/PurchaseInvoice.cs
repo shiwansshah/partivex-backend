@@ -6,6 +6,10 @@ public class PurchaseInvoice
 
     public string InvoiceNumber { get; set; } = string.Empty;
 
+    public int VendorId { get; set; }
+
+    public Vendor Vendor { get; set; } = null!;
+
     public string VendorName { get; set; } = string.Empty;
 
     public DateTimeOffset InvoiceDate { get; set; }

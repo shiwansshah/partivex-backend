@@ -2,16 +2,17 @@ namespace Partivex.Application.DTOs;
 
 public sealed record PurchaseInvoiceItemDto(
     int Id,
-    int InventoryItemId,
+    int PartId,
     string PartNumber,
     string PartName,
     int Quantity,
-    decimal UnitCost,
+    decimal UnitPrice,
     decimal SubTotal);
 
 public sealed record PurchaseInvoiceDto(
     int Id,
     string InvoiceNumber,
+    int VendorId,
     string VendorName,
     DateTimeOffset InvoiceDate,
     string Status,
@@ -23,16 +24,15 @@ public sealed record PurchaseInvoiceDto(
 
 public sealed record CreatePurchaseInvoiceCommand(
     string InvoiceNumber,
-    string VendorName,
+    int VendorId,
     DateTimeOffset InvoiceDate,
     string CreatedBy,
     string Notes,
     IReadOnlyList<PurchaseInvoiceLineCommand> Lines);
 
 public sealed record PurchaseInvoiceLineCommand(
-    int InventoryItemId,
-    int Quantity,
-    decimal UnitCost);
+    int PartId,
+    int Quantity);
 
 public sealed record PurchaseError(string Code, string Description);
 

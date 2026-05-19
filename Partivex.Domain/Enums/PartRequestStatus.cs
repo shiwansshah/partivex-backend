@@ -7,5 +7,6 @@ public enum PartRequestStatus
     Ordered = 2,
     Available = 3,
     Rejected = 4,
-    Cancelled = 5
+    Cancelled = 5,
+    Approved = 6
 }
