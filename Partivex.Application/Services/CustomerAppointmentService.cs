@@ -98,7 +98,7 @@ public sealed class CustomerAppointmentService : ICustomerAppointmentService
             CustomerId = customerId,
             VehicleId = dto.VehicleId!.Value,
             ServiceType = NormalizeRequired(dto.ServiceType),
-            PreferredAt = preferredAt,
+            PreferredAt = preferredAt.ToUniversalTime(),
             Notes = NormalizeOptional(dto.Notes),
             Status = AppointmentStatus.Pending,
             CreatedAt = now,
@@ -176,28 +176,32 @@ public sealed class CustomerAppointmentService : ICustomerAppointmentService
 
     private static AppointmentListDto MapList(Appointment appointment)
     {
+        var preferredAt = appointment.PreferredAt.ToLocalTime();
+
         return new AppointmentListDto(
             appointment.Id,
             appointment.VehicleId,
             appointment.Vehicle?.Name ?? string.Empty,
             appointment.Vehicle?.Number ?? string.Empty,
             appointment.ServiceType,
-            DateOnly.FromDateTime(appointment.PreferredAt.DateTime),
-            TimeOnly.FromDateTime(appointment.PreferredAt.DateTime),
+            DateOnly.FromDateTime(preferredAt.DateTime),
+            TimeOnly.FromDateTime(preferredAt.DateTime),
             appointment.Status.ToString(),
             appointment.CreatedAt);
     }
 
     private static AppointmentDetailDto MapDetail(Appointment appointment)
     {
+        var preferredAt = appointment.PreferredAt.ToLocalTime();
+
         return new AppointmentDetailDto(
             appointment.Id,
             appointment.VehicleId,
             appointment.Vehicle?.Name ?? string.Empty,
             appointment.Vehicle?.Number ?? string.Empty,
             appointment.ServiceType,
-            DateOnly.FromDateTime(appointment.PreferredAt.DateTime),
-            TimeOnly.FromDateTime(appointment.PreferredAt.DateTime),
+            DateOnly.FromDateTime(preferredAt.DateTime),
+            TimeOnly.FromDateTime(preferredAt.DateTime),
             appointment.Notes,
             appointment.Status.ToString(),
             appointment.CreatedAt,
