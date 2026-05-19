@@ -61,6 +61,17 @@ public sealed class PartRepository : IPartRepository
         return _dbContext.Parts.FirstOrDefaultAsync(part => part.Id == id);
     }
 
+    public async Task<IReadOnlyList<Part>> GetActiveCatalogAsync(CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Parts
+            .AsNoTracking()
+            .Where(part => part.IsActive)
+            .OrderBy(part => part.CurrentStock == 0)
+            .ThenBy(part => part.Category)
+            .ThenBy(part => part.Name)
+            .ToArrayAsync(cancellationToken);
+    }
+
     public Task<Part?> GetActiveByIdAsync(int id, CancellationToken cancellationToken = default)
     {
         return _dbContext.Parts.FirstOrDefaultAsync(part => part.Id == id && part.IsActive, cancellationToken);

@@ -83,6 +83,10 @@ public static class DependencyInjection
         services.AddScoped<IReviewRepository, ReviewRepository>();
         services.AddScoped<IInventoryRepository, InventoryRepository>();
         services.AddScoped<IPurchaseRepository, PurchaseRepository>();
+        services.AddScoped<ICustomerPartPurchaseRepository, CustomerPartPurchaseRepository>();
+        services.AddScoped<IAppointmentInvoiceRepository, AppointmentInvoiceRepository>();
+        services.AddScoped<ICustomerInvoiceEmailService, SmtpCustomerInvoiceEmailService>();
+        services.AddScoped<ISmtpSettingService, SmtpSettingService>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
         services.AddScoped<IStaffService, StaffService>(); // Registers staff service.
         services.AddScoped<ICustomerService, CustomerService>(); // Registers customer service.

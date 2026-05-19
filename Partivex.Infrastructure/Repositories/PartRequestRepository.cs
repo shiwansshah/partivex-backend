@@ -21,8 +21,21 @@ public sealed class PartRequestRepository : IPartRequestRepository
         return await _dbContext.PartRequests
             .AsNoTracking()
             .Include(request => request.Vehicle)
+            .Include(request => request.Part)
             .Where(request => request.CustomerId == customerId)
             .OrderByDescending(request => request.CreatedAt)
+            .ToArrayAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<PartRequest>> GetPendingAsync(CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.PartRequests
+            .AsNoTracking()
+            .Include(request => request.Vehicle)
+            .Include(request => request.Customer)
+            .Include(request => request.Part)
+            .Where(request => request.Status == Domain.Enums.PartRequestStatus.Pending)
+            .OrderBy(request => request.CreatedAt)
             .ToArrayAsync(cancellationToken);
     }
 
@@ -30,6 +43,8 @@ public sealed class PartRequestRepository : IPartRequestRepository
     {
         return _dbContext.PartRequests
             .Include(request => request.Vehicle)
+            .Include(request => request.Customer)
+            .Include(request => request.Part)
             .FirstOrDefaultAsync(request => request.Id == id, cancellationToken);
     }
 

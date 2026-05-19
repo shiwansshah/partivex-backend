@@ -12,6 +12,8 @@ public class PartRequest
 
     public Guid? VehicleId { get; set; }
 
+    public int? PartId { get; set; }
+
     [Required]
     [MaxLength(120)]
     public string PartName { get; set; } = string.Empty;
@@ -33,4 +35,6 @@ public class PartRequest
     public ApplicationUser Customer { get; set; } = null!;
 
     public Vehicle? Vehicle { get; set; }
+
+    public Part? Part { get; set; }
 }

@@ -11,6 +11,8 @@ public interface IPartRepository
         int pageNumber,
         int pageSize);
 
+    Task<IReadOnlyList<Part>> GetActiveCatalogAsync(CancellationToken cancellationToken = default);
+
     Task<Part?> GetByIdAsync(int id);
 
     Task<Part?> GetActiveByIdAsync(int id, CancellationToken cancellationToken = default);

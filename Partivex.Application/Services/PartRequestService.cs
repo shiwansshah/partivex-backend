@@ -9,11 +9,16 @@ public sealed class PartRequestService : IPartRequestService
 {
     private readonly IPartRequestRepository _partRequestRepository;
     private readonly IVehicleRepository _vehicleRepository;
+    private readonly IPartRepository _partRepository;
 
-    public PartRequestService(IPartRequestRepository partRequestRepository, IVehicleRepository vehicleRepository)
+    public PartRequestService(
+        IPartRequestRepository partRequestRepository,
+        IVehicleRepository vehicleRepository,
+        IPartRepository partRepository)
     {
         _partRequestRepository = partRequestRepository;
         _vehicleRepository = vehicleRepository;
+        _partRepository = partRepository;
     }
 
     public async Task<IReadOnlyList<PartRequestListDto>> GetPartRequestsAsync(
@@ -56,6 +61,20 @@ public sealed class PartRequestService : IPartRequestService
             }
         }
 
+        Part? requestedPart = null;
+        if (dto.PartId.HasValue)
+        {
+            requestedPart = await _partRepository.GetActiveByIdAsync(dto.PartId.Value, cancellationToken);
+            if (requestedPart is null)
+            {
+                errors.Add(new CustomerPortalError(nameof(dto.PartId), "Selected part is no longer available."));
+            }
+            else if (requestedPart.CurrentStock > 0)
+            {
+                errors.Add(new CustomerPortalError(nameof(dto.PartId), "This part is in stock. Add it to cart instead."));
+            }
+        }
+
         if (errors.Count > 0)
         {
             return CustomerPortalResult<PartRequestDetailDto>.Failed(errors, "Part request could not be created.");
@@ -67,7 +86,8 @@ public sealed class PartRequestService : IPartRequestService
             Id = Guid.NewGuid(),
             CustomerId = customerId,
             VehicleId = dto.VehicleId == Guid.Empty ? null : dto.VehicleId,
-            PartName = NormalizeRequired(dto.PartName),
+            PartId = dto.PartId,
+            PartName = requestedPart?.Name ?? NormalizeRequired(dto.PartName),
             BrandModelSpecification = NormalizeOptional(dto.BrandModelSpecification),
             Quantity = dto.Quantity,
             Reason = NormalizeOptional(dto.Reason),
@@ -136,6 +156,7 @@ public sealed class PartRequestService : IPartRequestService
             request.VehicleId,
             request.Vehicle?.Name,
             request.Vehicle?.Number,
+            request.PartId,
             request.PartName,
             request.BrandModelSpecification,
             request.Quantity,
@@ -150,6 +171,7 @@ public sealed class PartRequestService : IPartRequestService
             request.VehicleId,
             request.Vehicle?.Name,
             request.Vehicle?.Number,
+            request.PartId,
             request.PartName,
             request.BrandModelSpecification,
             request.Quantity,

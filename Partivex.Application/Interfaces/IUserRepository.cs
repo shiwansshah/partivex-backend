@@ -7,6 +7,8 @@ public interface IUserRepository
 {
     Task<ApplicationUser?> FindByEmailAsync(string email);
 
+    Task<ApplicationUser?> FindByIdAsync(string id);
+
     Task<bool> CheckPasswordAsync(ApplicationUser user, string password);
 
     Task<IReadOnlyList<string>> GetRolesAsync(ApplicationUser user);

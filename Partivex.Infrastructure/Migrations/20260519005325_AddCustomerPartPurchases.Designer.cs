@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Partivex.Infrastructure.Data;
@@ -11,9 +12,11 @@ using Partivex.Infrastructure.Data;
 namespace Partivex.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260519005325_AddCustomerPartPurchases")]
+    partial class AddCustomerPartPurchases
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -270,95 +273,6 @@ namespace Partivex.Infrastructure.Migrations
                     b.HasIndex("VehicleId");
 
                     b.ToTable("Appointments", (string)null);
-                });
-
-            modelBuilder.Entity("Partivex.Domain.Entities.AppointmentInvoice", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("AppointmentId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
-
-                    b.Property<string>("CustomerEmail")
-                        .IsRequired()
-                        .HasMaxLength(160)
-                        .HasColumnType("character varying(160)");
-
-                    b.Property<string>("CustomerId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("CustomerName")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
-
-                    b.Property<DateTimeOffset>("InvoiceDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("InvoiceNumber")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
-
-                    b.Property<DateTimeOffset?>("LastReminderEmailSentAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<DateTimeOffset?>("PaidAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("PaymentStatus")
-                        .IsRequired()
-                        .HasMaxLength(24)
-                        .HasColumnType("character varying(24)");
-
-                    b.Property<string>("ServiceType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("VehicleName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("VehicleNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AppointmentId");
-
-                    b.HasIndex("CustomerId");
-
-                    b.HasIndex("InvoiceNumber")
-                        .IsUnique();
-
-                    b.HasIndex("PaymentStatus");
-
-                    b.ToTable("AppointmentInvoices", (string)null);
                 });
 
             modelBuilder.Entity("Partivex.Domain.Entities.CustomerHistory", b =>
@@ -853,27 +767,6 @@ namespace Partivex.Infrastructure.Migrations
                     b.ToTable("Reviews", (string)null);
                 });
 
-            modelBuilder.Entity("Partivex.Domain.Entities.SmtpSetting", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("SenderEmail")
-                        .IsRequired()
-                        .HasMaxLength(160)
-                        .HasColumnType("character varying(160)");
-
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("SmtpSettings", (string)null);
-                });
-
             modelBuilder.Entity("Partivex.Domain.Entities.Vehicle", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1020,25 +913,6 @@ namespace Partivex.Infrastructure.Migrations
                     b.Navigation("Customer");
 
                     b.Navigation("Vehicle");
-                });
-
-            modelBuilder.Entity("Partivex.Domain.Entities.AppointmentInvoice", b =>
-                {
-                    b.HasOne("Partivex.Domain.Entities.Appointment", "Appointment")
-                        .WithMany()
-                        .HasForeignKey("AppointmentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Partivex.Domain.Entities.ApplicationUser", "Customer")
-                        .WithMany()
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Appointment");
-
-                    b.Navigation("Customer");
                 });
 
             modelBuilder.Entity("Partivex.Domain.Entities.CustomerHistory", b =>
