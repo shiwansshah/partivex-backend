@@ -41,6 +41,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<Part> Parts { get; set; }
 
+    public DbSet<StaffFeatureAccess> StaffFeatureAccesses => Set<StaffFeatureAccess>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -51,6 +53,22 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<ApplicationUser>()
             .HasIndex(user => user.PhoneNumber)
             .IsUnique();
+
+        builder.Entity<StaffFeatureAccess>(entity =>
+        {
+            entity.ToTable("StaffFeatureAccesses");
+            entity.HasKey(access => access.Id);
+            entity.Property(access => access.UserId).IsRequired().HasMaxLength(450);
+            entity.Property(access => access.FeatureKey).IsRequired().HasMaxLength(80);
+            entity.Property(access => access.IsEnabled).IsRequired();
+            entity.Property(access => access.CreatedAt).IsRequired();
+            entity.Property(access => access.UpdatedAt).IsRequired();
+            entity.HasIndex(access => new { access.UserId, access.FeatureKey }).IsUnique();
+            entity.HasOne(access => access.Staff)
+                .WithMany()
+                .HasForeignKey(access => access.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
 
         builder.Entity<InventoryItem>(entity =>
         {
