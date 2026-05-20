@@ -8,8 +8,6 @@ public static class StaffFeatureKeys
 
     public const string CustomerReports = "CustomerReports";
 
-    public const string Sales = "Sales";
-
     public const string PartRequestApprovals = "PartRequestApprovals";
 
     public const string CustomerPartInvoices = "CustomerPartInvoices";
@@ -21,7 +19,6 @@ public static class StaffFeatureKeys
         (CustomerManagement, "Customer Management"),
         (Vehicles, "Vehicles"),
         (CustomerReports, "Customer Reports"),
-        (Sales, "Sales"),
         (PartRequestApprovals, "Part Request Approvals"),
         (CustomerPartInvoices, "Customer Part Invoices"),
         (AppointmentInvoices, "Appointment Invoices")
