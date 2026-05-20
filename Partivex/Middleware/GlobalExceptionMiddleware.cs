@@ -20,6 +20,16 @@ public sealed class GlobalExceptionMiddleware
         {
             await _next(context);
         }
+        catch (JsonException ex)
+        {
+            _logger.LogWarning(ex, "Malformed JSON request body");
+            await WriteResponse(context, HttpStatusCode.BadRequest, "Request body contains invalid JSON.");
+        }
+        catch (BadHttpRequestException ex)
+        {
+            _logger.LogWarning(ex, "Bad HTTP request");
+            await WriteResponse(context, HttpStatusCode.BadRequest, ex.Message);
+        }
         catch (ArgumentException ex)
         {
             _logger.LogWarning(ex, "Validation error");
