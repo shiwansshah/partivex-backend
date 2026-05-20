@@ -13,10 +13,12 @@ namespace Partivex.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly INotificationService _notificationService;
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthService authService, INotificationService notificationService)
     {
         _authService = authService;
+        _notificationService = notificationService;
     }
 
     [HttpPost("login")] // Handles login.
@@ -45,6 +47,19 @@ public class AuthController : ControllerBase
         {
             return ToValidationProblem(result);
         }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await _notificationService.CreateAsync(
+                    ApplicationRoles.AdminAndStaff, null,
+                    "New Customer Registered",
+                    $"{request.FullName} ({request.Email}) has self-registered as a new customer.",
+                    "NewCustomer");
+            }
+            catch { /* non-critical */ }
+        });
 
         return Ok(result.Value);
     }
@@ -112,6 +127,22 @@ public class AuthController : ControllerBase
         if (!result.Succeeded)
         {
             return ToValidationProblem(result);
+        }
+
+        if (role == ApplicationRoles.Customer)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _notificationService.CreateAsync(
+                        ApplicationRoles.AdminAndStaff, null,
+                        "New Customer Added",
+                        $"{request.FullName} ({request.Email}) was registered as a new customer.",
+                        "NewCustomer");
+                }
+                catch { /* non-critical */ }
+            });
         }
 
         return Ok(result.Value);
