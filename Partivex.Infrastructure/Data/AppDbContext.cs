@@ -41,6 +41,14 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
     public DbSet<Part> Parts { get; set; }
 
+    public DbSet<Notification> Notifications => Set<Notification>();
+
+    public DbSet<Sale> Sales => Set<Sale>();
+
+    public DbSet<SalesInvoice> SalesInvoices => Set<SalesInvoice>();
+
+    public DbSet<SalesReport> SalesReports => Set<SalesReport>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -123,14 +131,18 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             entity.Property(change => change.ReferenceCode).HasMaxLength(40);
             entity.Property(change => change.ChangedBy).HasMaxLength(120);
             entity.Property(change => change.Notes).HasMaxLength(240);
+            entity.HasOne(change => change.InventoryItem)
+                .WithMany()
+                .HasForeignKey(change => change.InventoryItemId)
+                .OnDelete(DeleteBehavior.SetNull);
             entity.HasOne(change => change.Part)
                 .WithMany(item => item.StockChanges)
                 .HasForeignKey(change => change.PartId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.SetNull);
             entity.HasOne(change => change.Vendor)
                 .WithMany()
                 .HasForeignKey(change => change.VendorId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<Vehicle>(entity =>
@@ -277,6 +289,71 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
                 .WithMany()
                 .HasForeignKey(invoice => invoice.CustomerId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<Notification>(entity =>
+        {
+            entity.ToTable("Notifications");
+            entity.Property(n => n.TargetRole).IsRequired().HasMaxLength(40);
+            entity.Property(n => n.TargetUserId).HasMaxLength(450);
+            entity.Property(n => n.Title).IsRequired().HasMaxLength(120);
+            entity.Property(n => n.Message).IsRequired().HasMaxLength(500);
+            entity.Property(n => n.Type).IsRequired().HasMaxLength(40);
+            entity.HasIndex(n => new { n.TargetRole, n.IsRead });
+            entity.HasIndex(n => n.TargetUserId);
+        });
+
+        builder.Entity<Sale>(entity =>
+        {
+            entity.ToTable("Sales");
+            entity.Property(s => s.CustomerName).IsRequired().HasMaxLength(120);
+            entity.Property(s => s.VehicleNo).IsRequired().HasMaxLength(40);
+            entity.Property(s => s.SoldBy).IsRequired().HasMaxLength(120);
+            entity.Property(s => s.Notes).HasMaxLength(500);
+            entity.Property(s => s.SubtotalAmount).HasPrecision(18, 2);
+            entity.Property(s => s.DiscountAmount).HasPrecision(18, 2);
+            entity.Property(s => s.TotalAmount).HasPrecision(18, 2);
+        });
+
+        builder.Entity<SaleItem>(entity =>
+        {
+            entity.ToTable("SaleItems");
+            entity.Property(i => i.UnitPrice).HasPrecision(18, 2);
+            entity.Property(i => i.LineTotal).HasPrecision(18, 2);
+            entity.HasOne(i => i.Sale)
+                .WithMany(s => s.Items)
+                .HasForeignKey(i => i.SaleId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(i => i.InventoryItem)
+                .WithMany()
+                .HasForeignKey(i => i.InventoryItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<SalesInvoice>(entity =>
+        {
+            entity.ToTable("SalesInvoices");
+            entity.Property(inv => inv.InvoiceNumber).IsRequired().HasMaxLength(40);
+            entity.Property(inv => inv.CustomerName).IsRequired().HasMaxLength(120);
+            entity.Property(inv => inv.VehicleNo).IsRequired().HasMaxLength(40);
+            entity.Property(inv => inv.IssuedBy).IsRequired().HasMaxLength(120);
+            entity.Property(inv => inv.SubtotalAmount).HasPrecision(18, 2);
+            entity.Property(inv => inv.DiscountAmount).HasPrecision(18, 2);
+            entity.Property(inv => inv.TotalAmount).HasPrecision(18, 2);
+            entity.HasIndex(inv => inv.InvoiceNumber).IsUnique();
+            entity.HasOne(inv => inv.Sale)
+                .WithOne(s => s.Invoice)
+                .HasForeignKey<SalesInvoice>(inv => inv.SaleId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<SalesReport>(entity =>
+        {
+            entity.ToTable("SalesReports");
+            entity.Property(r => r.GrossRevenue).HasPrecision(18, 2);
+            entity.Property(r => r.TotalDiscount).HasPrecision(18, 2);
+            entity.Property(r => r.NetRevenue).HasPrecision(18, 2);
+            entity.HasIndex(r => r.ReportDate).IsUnique();
         });
 
         builder.Entity<SmtpSetting>(entity =>
