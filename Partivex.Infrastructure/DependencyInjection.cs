@@ -88,6 +88,8 @@ public static class DependencyInjection
         services.AddScoped<ICustomerInvoiceEmailService, SmtpCustomerInvoiceEmailService>();
         services.AddScoped<ISmtpSettingService, SmtpSettingService>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
+        services.AddScoped<IAdminDashboardService, AdminDashboardService>();
+        services.AddScoped<IStaffFeatureAccessService, StaffFeatureAccessService>();
         services.AddScoped<IStaffService, StaffService>(); // Registers staff service.
         services.AddScoped<ICustomerService, CustomerService>(); // Registers customer service.
         services.AddScoped<IVendorRepository, VendorRepository>();
