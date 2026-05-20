@@ -59,6 +59,13 @@ public sealed class UpdateAppointmentInvoicePaymentDto
 
 public sealed record AppointmentInvoiceEmailResult(string Message, bool EmailSent);
 
+public sealed class SendAppointmentInvoiceEmailDto
+{
+    [EmailAddress]
+    [MaxLength(160)]
+    public string? Email { get; init; }
+}
+
 public sealed record OverdueAppointmentInvoiceEmailResult(int SentCount, int SkippedCount);
 
 public sealed record SmtpSettingDto(

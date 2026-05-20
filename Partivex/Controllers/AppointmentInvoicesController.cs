@@ -59,9 +59,12 @@ public sealed class AppointmentInvoicesController : ControllerBase
     }
 
     [HttpPost("{id:int}/email")]
-    public async Task<ActionResult<AppointmentInvoiceEmailResult>> EmailInvoice(int id, CancellationToken cancellationToken)
+    public async Task<ActionResult<AppointmentInvoiceEmailResult>> EmailInvoice(
+        int id,
+        [FromBody] SendAppointmentInvoiceEmailDto? request,
+        CancellationToken cancellationToken)
     {
-        var result = await _invoiceService.SendInvoiceEmailAsync(id, null, cancellationToken);
+        var result = await _invoiceService.SendInvoiceEmailAsync(id, request?.Email, cancellationToken);
         return result.Succeeded ? Ok(result.Value) : NotFound(new { message = result.Message ?? "Appointment invoice not found." });
     }
 
