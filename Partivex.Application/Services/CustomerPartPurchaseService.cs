@@ -73,7 +73,7 @@ public sealed class CustomerPartPurchaseService : ICustomerPartPurchaseService
         return CustomerPartPurchaseResult<CustomerPartInvoiceDto>.Success(MapInvoice(invoice));
     }
 
-    public async Task<CustomerPartPurchaseResult<CustomerPartInvoiceDto>> ApprovePartRequestAsync(
+    public async Task<CustomerPartPurchaseResult<StaffPartRequestApprovalResultDto>> ApprovePartRequestAsync(
         Guid partRequestId,
         ApprovePartRequestDto request,
         string staffIdentifier,
@@ -82,12 +82,12 @@ public sealed class CustomerPartPurchaseService : ICustomerPartPurchaseService
         var partRequest = await _partRequestRepository.GetByIdAsync(partRequestId, cancellationToken);
         if (partRequest is null)
         {
-            return CustomerPartPurchaseResult<CustomerPartInvoiceDto>.NotFound("Part request not found.");
+            return CustomerPartPurchaseResult<StaffPartRequestApprovalResultDto>.NotFound("Part request not found.");
         }
 
         if (partRequest.Status != PartRequestStatus.Pending)
         {
-            return CustomerPartPurchaseResult<CustomerPartInvoiceDto>.Failed(
+            return CustomerPartPurchaseResult<StaffPartRequestApprovalResultDto>.Failed(
             [
                 new CustomerPartPurchaseError(nameof(partRequest.Status), "Only pending customer part requests can be approved.")
             ],
@@ -97,7 +97,7 @@ public sealed class CustomerPartPurchaseService : ICustomerPartPurchaseService
         var selectedPartId = request.PartId ?? partRequest.PartId;
         if (!selectedPartId.HasValue)
         {
-            return CustomerPartPurchaseResult<CustomerPartInvoiceDto>.Failed(
+            return CustomerPartPurchaseResult<StaffPartRequestApprovalResultDto>.Failed(
             [
                 new CustomerPartPurchaseError(nameof(request.PartId), "Select a catalog part to sell for this request.")
             ]);
@@ -113,7 +113,15 @@ public sealed class CustomerPartPurchaseService : ICustomerPartPurchaseService
 
         if (!invoiceResult.Succeeded)
         {
-            return invoiceResult;
+            if (invoiceResult.IsNotFound)
+            {
+                return CustomerPartPurchaseResult<StaffPartRequestApprovalResultDto>.NotFound(
+                    invoiceResult.Message ?? "Invoice could not be created.");
+            }
+
+            return CustomerPartPurchaseResult<StaffPartRequestApprovalResultDto>.Failed(
+                invoiceResult.Errors,
+                invoiceResult.Message ?? "Invoice could not be created.");
         }
 
         partRequest.PartId = selectedPartId.Value;
@@ -121,12 +129,15 @@ public sealed class CustomerPartPurchaseService : ICustomerPartPurchaseService
         partRequest.UpdatedAt = DateTimeOffset.UtcNow;
         await _partRequestRepository.SaveChangesAsync(cancellationToken);
 
+        CustomerPartInvoiceEmailResult? emailResult = null;
         if (!string.IsNullOrWhiteSpace(request.Email))
         {
-            await SendInvoiceEmailAsync(invoiceResult.Value!.Id, request.Email.Trim(), cancellationToken);
+            var sendResult = await SendInvoiceEmailAsync(invoiceResult.Value!.Id, request.Email.Trim(), cancellationToken);
+            emailResult = sendResult.Value;
         }
 
-        return invoiceResult;
+        return CustomerPartPurchaseResult<StaffPartRequestApprovalResultDto>.Success(
+            new StaffPartRequestApprovalResultDto(invoiceResult.Value!, emailResult));
     }
 
     public async Task<CustomerPartPurchaseResult<CustomerPartInvoiceEmailResult>> SendInvoiceEmailAsync(

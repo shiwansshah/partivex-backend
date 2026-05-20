@@ -75,3 +75,7 @@ public sealed class SendCustomerPartInvoiceEmailDto
 }
 
 public sealed record CustomerPartInvoiceEmailResult(string Message, bool EmailSent);
+
+public sealed record StaffPartRequestApprovalResultDto(
+    CustomerPartInvoiceDto Invoice,
+    CustomerPartInvoiceEmailResult? Email);

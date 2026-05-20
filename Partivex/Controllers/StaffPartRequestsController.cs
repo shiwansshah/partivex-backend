@@ -43,7 +43,7 @@ public sealed class StaffPartRequestsController : ControllerBase
     }
 
     [HttpPost("{id:guid}/approve")]
-    public async Task<ActionResult<CustomerPartInvoiceDto>> Approve(
+    public async Task<ActionResult<StaffPartRequestApprovalResultDto>> Approve(
         Guid id,
         ApprovePartRequestDto request,
         CancellationToken cancellationToken)
