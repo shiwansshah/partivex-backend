@@ -1,3 +1,4 @@
+using Partivex.Application.Constants;
 using Partivex.Application.DTOs;
 using Partivex.Application.Interfaces;
 using Partivex.Domain.Entities;
@@ -29,16 +30,22 @@ public sealed class FinancialReportService : IFinancialReportService
         var purchases = await _reportRepository.GetPurchaseInvoicesAsync(periodStart, periodEnd, cancellationToken);
         var partSales = await _reportRepository.GetCustomerPartPurchaseInvoicesAsync(periodStart, periodEnd, cancellationToken);
         var appointmentSales = await _reportRepository.GetAppointmentInvoicesAsync(periodStart, periodEnd, cancellationToken);
+        var recognizedPartSales = partSales
+            .Where(invoice => SalesRecognitionRules.IsRecognized(invoice.Status))
+            .ToArray();
+        var recognizedAppointmentSales = appointmentSales
+            .Where(invoice => SalesRecognitionRules.IsRecognized(invoice.PaymentStatus))
+            .ToArray();
 
         var totalPurchases = purchases.Sum(GetPurchaseTotal);
-        var customerPartSales = partSales.Sum(invoice => invoice.TotalAmount);
-        var appointmentSalesTotal = appointmentSales.Sum(invoice => invoice.Amount);
+        var customerPartSales = recognizedPartSales.Sum(invoice => invoice.TotalAmount);
+        var appointmentSalesTotal = recognizedAppointmentSales.Sum(invoice => invoice.Amount);
         var totalSales = customerPartSales + appointmentSalesTotal;
         var profitLoss = totalSales - totalPurchases;
-        var paidAppointmentCount = appointmentSales.Count(IsPaid);
-        var pendingAppointmentCount = appointmentSales.Count(invoice => !IsPaid(invoice));
+        var paidAppointmentCount = recognizedAppointmentSales.Length;
+        var pendingAppointmentCount = appointmentSales.Count(invoice => !IsRecognizedSale(invoice.PaymentStatus));
         var outstandingAppointmentSales = appointmentSales
-            .Where(invoice => !IsPaid(invoice))
+            .Where(invoice => !IsRecognizedSale(invoice.PaymentStatus))
             .Sum(invoice => invoice.Amount);
 
         var summary = new FinancialReportSummaryDto(
@@ -50,7 +57,7 @@ public sealed class FinancialReportService : IFinancialReportService
             totalSales == 0 ? 0 : Math.Round(profitLoss / totalSales * 100, 2),
             outstandingAppointmentSales,
             purchases.Count,
-            partSales.Count,
+            recognizedPartSales.Length,
             appointmentSales.Count,
             paidAppointmentCount,
             pendingAppointmentCount);
@@ -61,9 +68,9 @@ public sealed class FinancialReportService : IFinancialReportService
             periodEnd,
             DateTimeOffset.UtcNow,
             summary,
-            BuildSalesChannels(customerPartSales, partSales.Count, appointmentSalesTotal, appointmentSales.Count, totalSales),
-            BuildSeries(normalizedPeriod, periodStart, periodEnd, purchases, partSales, appointmentSales),
-            BuildRecentTransactions(purchases, partSales, appointmentSales));
+            BuildSalesChannels(customerPartSales, recognizedPartSales.Length, appointmentSalesTotal, recognizedAppointmentSales.Length, totalSales),
+            BuildSeries(normalizedPeriod, periodStart, periodEnd, purchases, recognizedPartSales, recognizedAppointmentSales),
+            BuildRecentTransactions(purchases, recognizedPartSales, recognizedAppointmentSales));
     }
 
     private static string NormalizePeriod(string period)
@@ -246,9 +253,9 @@ public sealed class FinancialReportService : IFinancialReportService
         return value >= start && value < end;
     }
 
-    private static bool IsPaid(AppointmentInvoice invoice)
+    private static bool IsRecognizedSale(string? status)
     {
-        return string.Equals(invoice.PaymentStatus, "Paid", StringComparison.OrdinalIgnoreCase);
+        return SalesRecognitionRules.IsRecognized(status);
     }
 
     private static decimal GetShare(decimal amount, decimal total)
