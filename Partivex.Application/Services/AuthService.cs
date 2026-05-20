@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Partivex.Application.DTOs;
 using Partivex.Application.Interfaces;
 using Partivex.Application.Constants; // Imports role constants.
@@ -9,11 +10,13 @@ public sealed class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepository;
     private readonly IJwtService _jwtService;
+    private readonly IFileStorageService _fileStorageService;
 
-    public AuthService(IUserRepository userRepository, IJwtService jwtService)
+    public AuthService(IUserRepository userRepository, IJwtService jwtService, IFileStorageService fileStorageService)
     {
         _userRepository = userRepository;
         _jwtService = jwtService;
+        _fileStorageService = fileStorageService;
     }
 
     public async Task<AuthResult<AuthResponse>> LoginAsync(LoginCommand command)
@@ -69,6 +72,52 @@ public sealed class AuthService : IAuthService
         }
 
         return AuthResult<UserCreatedResponse>.Success(new UserCreatedResponse(user.Id, user.Email!, command.Role));
+    }
+
+    public async Task<AuthResult<UserCreatedResponse>> CreateCustomerAsync(CreateUserCommand command, IFormFile? profileImage = null, IFormFile? image = null)
+    {
+        var user = CreateApplicationUser(command.FullName, command.Email);
+
+        var errors = await _userRepository.CreateAsync(user, command.Password);
+        if (errors.Count > 0)
+        {
+            return AuthResult<UserCreatedResponse>.Failed(errors);
+        }
+
+        var selectedImage = profileImage ?? image;
+        string? profileImageUrl = null;
+
+        try
+        {
+            if (selectedImage is not null)
+            {
+                profileImageUrl = await _fileStorageService.SaveFileAsync(selectedImage, "customers");
+            }
+
+            var roleErrors = await _userRepository.AddToRoleAsync(user, ApplicationRoles.Customer);
+            if (roleErrors.Count > 0)
+            {
+                if (!string.IsNullOrEmpty(profileImageUrl))
+                {
+                    _fileStorageService.DeleteFile(profileImageUrl);
+                }
+
+                await _userRepository.DeleteAsync(user);
+                return AuthResult<UserCreatedResponse>.Failed(roleErrors);
+            }
+
+            return AuthResult<UserCreatedResponse>.Success(new UserCreatedResponse(user.Id, user.Email!, ApplicationRoles.Customer, profileImageUrl));
+        }
+        catch (ArgumentException exception)
+        {
+            if (!string.IsNullOrEmpty(profileImageUrl))
+            {
+                _fileStorageService.DeleteFile(profileImageUrl);
+            }
+
+            await _userRepository.DeleteAsync(user);
+            return AuthResult<UserCreatedResponse>.Failed([new AuthError("ProfileImage", exception.Message)]);
+        }
     }
 
     private static ApplicationUser CreateApplicationUser(string fullName, string email)
