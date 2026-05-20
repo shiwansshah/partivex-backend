@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Partivex.Application.Constants; // Imports role constants.
@@ -62,13 +63,29 @@ public class AuthController : ControllerBase
 
     [HttpPost("create-customer")] // Handles customer creation.
     [Authorize(Roles = ApplicationRoles.AdminAndStaff)] // Allows admin to do everything staff can do.
+    [Consumes("application/json")]
     [ProducesResponseType(typeof(UserCreatedResponse), StatusCodes.Status200OK)] // Documents create success.
     [ProducesResponseType(StatusCodes.Status400BadRequest)] // Documents validation failure.
     [ProducesResponseType(StatusCodes.Status401Unauthorized)] // Documents missing auth.
     [ProducesResponseType(StatusCodes.Status403Forbidden)] // Documents denied role.
     public async Task<ActionResult<UserCreatedResponse>> CreateCustomer([FromBody] CreateUserRequest request) // Creates customer.
     {
-        return await CreateUser(request, ApplicationRoles.Customer);
+        return await CreateCustomerInternal(request);
+    }
+
+    [HttpPost("create-customer")] // Handles customer creation with profile image.
+    [Authorize(Roles = ApplicationRoles.AdminAndStaff)] // Allows admin to do everything staff can do.
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(UserCreatedResponse), StatusCodes.Status200OK)] // Documents create success.
+    [ProducesResponseType(StatusCodes.Status400BadRequest)] // Documents validation failure.
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)] // Documents missing auth.
+    [ProducesResponseType(StatusCodes.Status403Forbidden)] // Documents denied role.
+    public async Task<ActionResult<UserCreatedResponse>> CreateCustomer(
+        [FromForm] CreateUserRequest request,
+        IFormFile? profileImage,
+        IFormFile? image) // Creates customer with optional profile picture.
+    {
+        return await CreateCustomerInternal(request, profileImage, image);
     }
 
     [HttpGet("profile")] // Handles profile lookup.
@@ -109,6 +126,17 @@ public class AuthController : ControllerBase
     private async Task<ActionResult<UserCreatedResponse>> CreateUser(CreateUserRequest request, string role)
     {
         var result = await _authService.CreateUserAsync(new CreateUserCommand(request.FullName, request.Email, request.Password, role));
+        if (!result.Succeeded)
+        {
+            return ToValidationProblem(result);
+        }
+
+        return Ok(result.Value);
+    }
+
+    private async Task<ActionResult<UserCreatedResponse>> CreateCustomerInternal(CreateUserRequest request, IFormFile? profileImage = null, IFormFile? image = null)
+    {
+        var result = await _authService.CreateCustomerAsync(new CreateUserCommand(request.FullName, request.Email, request.Password, ApplicationRoles.Customer), profileImage, image);
         if (!result.Succeeded)
         {
             return ToValidationProblem(result);

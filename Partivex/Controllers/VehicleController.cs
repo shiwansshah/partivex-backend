@@ -29,6 +29,24 @@ public class VehicleController : ControllerBase
         return Ok(vehicles);
     }
 
+    [HttpGet("/api/customers/{customerId}/vehicles")]
+    [HttpGet("/customers/{customerId}/vehicles")]
+    [Authorize(Roles = ApplicationRoles.AdminAndStaff + "," + ApplicationRoles.Customer)]
+    [ProducesResponseType(typeof(IEnumerable<VehicleDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IEnumerable<VehicleDto>>> GetVehiclesByCustomerRoute([FromRoute] string customerId)
+    {
+        if (User.IsInRole(ApplicationRoles.Customer) && !string.Equals(customerId, GetCustomerId(), StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+
+        var vehicles = await _vehicleService.GetCustomerVehiclesAsync(customerId);
+
+        return Ok(vehicles);
+    }
+
     [HttpGet("customer/{customerId}")]
     [Authorize(Roles = ApplicationRoles.AdminAndStaff)]
     [ProducesResponseType(typeof(IEnumerable<VehicleDto>), StatusCodes.Status200OK)]
@@ -62,6 +80,42 @@ public class VehicleController : ControllerBase
         IFormFile? image)
     {
         var customerId = GetCustomerId();
+
+        if (!string.IsNullOrWhiteSpace(dto.CustomerId) &&
+            !string.Equals(dto.CustomerId, customerId, StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new ApiErrorResponse("customerId does not match the authenticated customer."));
+        }
+
+        var vehicle = await _vehicleService.AddVehicleAsync(customerId, dto, image);
+
+        return Ok(vehicle);
+    }
+
+    [HttpPost("/api/customers/{customerId}/vehicles")]
+    [HttpPost("/customers/{customerId}/vehicles")]
+    [Authorize(Roles = ApplicationRoles.AdminAndStaff + "," + ApplicationRoles.Customer)]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(VehicleDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<VehicleDto>> AddVehicleForCustomer(
+        [FromRoute] string customerId,
+        [FromForm] CreateVehicleDto dto,
+        IFormFile? image)
+    {
+        if (User.IsInRole(ApplicationRoles.Customer) && !string.Equals(customerId, GetCustomerId(), StringComparison.OrdinalIgnoreCase))
+        {
+            return Forbid();
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.CustomerId) &&
+            !string.Equals(dto.CustomerId, customerId, StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new ApiErrorResponse("customerId does not match the route."));
+        }
+
         var vehicle = await _vehicleService.AddVehicleAsync(customerId, dto, image);
 
         return Ok(vehicle);

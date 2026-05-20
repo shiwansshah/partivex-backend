@@ -8,7 +8,7 @@ public sealed record CreateUserCommand(string FullName, string Email, string Pas
 
 public sealed record AuthResponse(string Token);
 
-public sealed record UserCreatedResponse(string UserId, string Email, string Role);
+public sealed record UserCreatedResponse(string UserId, string Email, string Role, string? ProfileImageUrl = null);
 
 public sealed record AuthError(string Code, string Description);
 
