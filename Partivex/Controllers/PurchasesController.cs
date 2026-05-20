@@ -98,8 +98,7 @@ public sealed class CreatePurchaseInvoiceRequest
     [MaxLength(40)]
     public string InvoiceNumber { get; init; } = string.Empty;
 
-    [Required]
-    [MaxLength(120)]
+    [Range(1, int.MaxValue)]
     public int VendorId { get; init; }
 
     public DateTimeOffset InvoiceDate { get; init; } = DateTimeOffset.UtcNow;

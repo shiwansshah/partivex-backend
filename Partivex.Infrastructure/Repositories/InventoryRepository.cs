@@ -23,6 +23,24 @@ public sealed class InventoryRepository : IInventoryRepository
             .ToArrayAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyCollection<InventoryItem>> GetItemsByIdsAsync(int[] ids, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.InventoryItems
+            .Where(item => ids.Contains(item.Id))
+            .ToArrayAsync(cancellationToken);
+    }
+
+    public Task<InventoryItem?> GetByPartNumberAsync(string partNumber, CancellationToken cancellationToken = default)
+    {
+        return _dbContext.InventoryItems
+            .FirstOrDefaultAsync(item => item.PartNumber == partNumber, cancellationToken);
+    }
+
+    public async Task AddInventoryItemAsync(InventoryItem item, CancellationToken cancellationToken = default)
+    {
+        await _dbContext.InventoryItems.AddAsync(item, cancellationToken);
+    }
+
     public async Task AddStockChangeAsync(InventoryStockChange stockChange, CancellationToken cancellationToken = default)
     {
         await _dbContext.InventoryStockChanges.AddAsync(stockChange, cancellationToken);

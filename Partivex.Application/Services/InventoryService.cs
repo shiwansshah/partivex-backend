@@ -62,11 +62,22 @@ public sealed class InventoryService : IInventoryService
             return InventoryResult<PurchaseInvoiceDto>.Failed(errors);
         }
 
-        var part = await _partRepository.GetActiveByIdAsync(command.PartId, cancellationToken);
         var vendor = await _vendorRepository.GetActiveByIdAsync(command.VendorId, cancellationToken);
-        if (part is null || vendor is null)
+        if (vendor is null)
         {
             return InventoryResult<PurchaseInvoiceDto>.NotFound();
+        }
+
+        var partsById = new Dictionary<int, Part>();
+        foreach (var line in command.Lines)
+        {
+            var part = await _partRepository.GetActiveByIdAsync(line.PartId, cancellationToken);
+            if (part is null)
+            {
+                return InventoryResult<PurchaseInvoiceDto>.NotFound();
+            }
+
+            partsById[line.PartId] = part;
         }
 
         var invoiceNumber = string.IsNullOrWhiteSpace(command.InvoiceNumber)
@@ -76,10 +87,6 @@ public sealed class InventoryService : IInventoryService
             ? DefaultChangedBy
             : command.ChangedBy.Trim();
         var remarks = command.Remarks.Trim();
-
-        part.CurrentStock += command.PurchaseQuantity;
-        part.UpdatedAt = DateTime.UtcNow;
-        await _partRepository.UpdateAsync(part);
 
         var invoice = new PurchaseInvoice
         {
@@ -92,26 +99,65 @@ public sealed class InventoryService : IInventoryService
             Notes = remarks,
             CreatedAt = DateTimeOffset.UtcNow
         };
-        invoice.Items.Add(new PurchaseInvoiceItem
+
+        foreach (var line in command.Lines)
         {
-            PartId = part.Id,
-            Quantity = command.PurchaseQuantity,
-            UnitPrice = part.UnitPrice
-        });
+            var part = partsById[line.PartId];
+            part.CurrentStock += line.PurchaseQuantity;
+            part.UpdatedAt = DateTime.UtcNow;
+
+            var inventoryItem = await _inventoryRepository.GetByPartNumberAsync(part.PartCode, cancellationToken);
+            if (inventoryItem is null)
+            {
+                inventoryItem = new InventoryItem
+                {
+                    Id = part.Id,
+                    PartNumber = part.PartCode,
+                    Name = part.Name,
+                    Category = part.Category,
+                    VendorName = vendor.Name,
+                    StorageLocation = "Main Store",
+                    QuantityInStock = part.CurrentStock,
+                    ReorderLevel = part.MinimumStockLevel,
+                    UnitCost = part.UnitPrice,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                };
+
+                await _inventoryRepository.AddInventoryItemAsync(inventoryItem, cancellationToken);
+            }
+            else
+            {
+                inventoryItem.Name = part.Name;
+                inventoryItem.Category = part.Category;
+                inventoryItem.VendorName = vendor.Name;
+                inventoryItem.QuantityInStock = part.CurrentStock;
+                inventoryItem.ReorderLevel = part.MinimumStockLevel;
+                inventoryItem.UnitCost = part.UnitPrice;
+                inventoryItem.UpdatedAt = DateTimeOffset.UtcNow;
+            }
+
+            invoice.Items.Add(new PurchaseInvoiceItem
+            {
+                PartId = part.Id,
+                Quantity = line.PurchaseQuantity,
+                UnitPrice = part.UnitPrice
+            });
+
+            await _inventoryRepository.AddStockChangeAsync(new InventoryStockChange
+            {
+                PartId = part.Id,
+                VendorId = vendor.Id,
+                ChangeType = "Purchase",
+                QuantityChanged = line.PurchaseQuantity,
+                QuantityAfterChange = part.CurrentStock,
+                ReferenceCode = invoiceNumber,
+                ChangedBy = changedBy,
+                Notes = remarks,
+                ChangedAt = DateTimeOffset.UtcNow
+            }, cancellationToken);
+        }
 
         await _purchaseRepository.AddAsync(invoice, cancellationToken);
-        await _inventoryRepository.AddStockChangeAsync(new InventoryStockChange
-        {
-            PartId = part.Id,
-            VendorId = vendor.Id,
-            ChangeType = "Purchase",
-            QuantityChanged = command.PurchaseQuantity,
-            QuantityAfterChange = part.CurrentStock,
-            ReferenceCode = invoiceNumber,
-            ChangedBy = changedBy,
-            Notes = remarks,
-            ChangedAt = DateTimeOffset.UtcNow
-        }, cancellationToken);
         await _purchaseRepository.SaveChangesAsync(cancellationToken);
 
         var saved = await _purchaseRepository.GetByIdAsync(invoice.Id, cancellationToken);
@@ -136,14 +182,32 @@ public sealed class InventoryService : IInventoryService
             errors.Add(new InventoryError(nameof(command.VendorId), "Select an active vendor."));
         }
 
-        if (command.PartId <= 0)
+        if (command.Lines is null || command.Lines.Count == 0)
         {
-            errors.Add(new InventoryError(nameof(command.PartId), "Select an active part."));
+            errors.Add(new InventoryError("Lines", "Add at least one stock line."));
         }
-
-        if (command.PurchaseQuantity <= 0)
+        else
         {
-            errors.Add(new InventoryError(nameof(command.PurchaseQuantity), "Purchase quantity must be greater than zero."));
+            if (command.Lines.Any(line => line.PartId <= 0))
+            {
+                errors.Add(new InventoryError("Lines", "Select an active part for every stock line."));
+            }
+
+            if (command.Lines.Any(line => line.PurchaseQuantity <= 0))
+            {
+                errors.Add(new InventoryError("Lines", "Purchase quantity must be greater than zero for every stock line."));
+            }
+
+            var duplicatePartIds = command.Lines
+                .GroupBy(line => line.PartId)
+                .Where(group => group.Key > 0 && group.Count() > 1)
+                .Select(group => group.Key)
+                .ToArray();
+
+            if (duplicatePartIds.Length > 0)
+            {
+                errors.Add(new InventoryError("Lines", "Each part can only appear once per stock update."));
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(command.InvoiceNumber) &&
@@ -190,10 +254,10 @@ public sealed class InventoryService : IInventoryService
     {
         return new InventoryStockChangeDto(
             change.Id,
-            change.PartId,
-            change.Part.Name,
-            change.Part.PartCode,
-            change.Vendor.Name,
+            change.PartId ?? 0,
+            change.Part?.Name ?? string.Empty,
+            change.Part?.PartCode ?? string.Empty,
+            change.Vendor?.Name ?? string.Empty,
             change.ChangeType,
             change.QuantityChanged,
             change.QuantityAfterChange,
