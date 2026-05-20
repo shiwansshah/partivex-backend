@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Partivex.Application.Constants;
 using Partivex.Application.DTOs;
@@ -70,6 +71,8 @@ public sealed class CustomersController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [HttpPut("/customers/{id}")]
+    [Consumes("application/json")]
     [ProducesResponseType(typeof(CustomerDetailDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
@@ -81,6 +84,41 @@ public sealed class CustomersController : ControllerBase
         try
         {
             var customer = await _customerService.UpdateAsync(id, dto);
+
+            return Ok(customer);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new ApiErrorResponse(exception.Message));
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(new ApiErrorResponse(exception.Message));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(new ApiErrorResponse(exception.Message));
+        }
+    }
+
+    [HttpPut("{id}")]
+    [HttpPut("/customers/{id}")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(CustomerDetailDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiErrorResponse), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<CustomerDetailDto>> UpdateCustomerWithImage(
+        [FromRoute] string id,
+        [FromForm] UpdateCustomerDto dto,
+        IFormFile? profileImage,
+        IFormFile? image)
+    {
+        try
+        {
+            var customer = await _customerService.UpdateAsync(id, dto, profileImage, image);
 
             return Ok(customer);
         }

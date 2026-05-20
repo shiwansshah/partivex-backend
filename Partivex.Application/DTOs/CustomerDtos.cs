@@ -16,7 +16,8 @@ public sealed record CustomerDto( // Defines customer list DTO.
     [StringLength(32)] // Limits phone length.
     string? PhoneNumber, // Carries customer phone number.
     [StringLength(500)] // Limits address length.
-    string? Address); // Carries customer address.
+    string? Address, // Carries customer address.
+    string? ProfileImageUrl); // Carries profile image url.
 
 public sealed record CustomerDetailDto( // Defines customer detail DTO.
     [Required] // Requires customer id.
@@ -34,7 +35,8 @@ public sealed record CustomerDetailDto( // Defines customer detail DTO.
     [StringLength(500)] // Limits address length.
     string? Address, // Carries customer address.
     [Required] // Requires vehicle list.
-    List<VehicleDto> Vehicles); // Carries customer vehicles.
+    List<VehicleDto> Vehicles, // Carries customer vehicles.
+    string? ProfileImageUrl); // Carries profile image url.
 
 public sealed class UpdateCustomerDto // Defines customer update DTO.
 {
@@ -49,6 +51,9 @@ public sealed class UpdateCustomerDto // Defines customer update DTO.
 
     [StringLength(32)]
     public string? PhoneNumber { get; init; }
+
+    [StringLength(32)]
+    public string? Phone { get; init; }
 
     [Required]
     [StringLength(500)]

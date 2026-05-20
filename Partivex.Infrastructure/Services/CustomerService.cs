@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http; // Imports file upload abstractions.
 using Microsoft.AspNetCore.Identity; // Imports Identity services.
 using Microsoft.EntityFrameworkCore; // Imports EF query extensions.
 using Partivex.Application.Constants; // Imports role constants.
@@ -12,13 +13,16 @@ public sealed class CustomerService : ICustomerService // Implements customer se
 {
     private readonly AppDbContext _dbContext; // Stores database context.
     private readonly UserManager<ApplicationUser> _userManager; // Stores user manager.
+    private readonly IFileStorageService _fileStorageService; // Stores file storage service.
 
     public CustomerService( // Defines constructor.
         AppDbContext dbContext, // Receives database context.
-        UserManager<ApplicationUser> userManager) // Receives user manager.
+        UserManager<ApplicationUser> userManager, // Receives user manager.
+        IFileStorageService fileStorageService) // Receives file storage service.
     {
         _dbContext = dbContext; // Assigns database context.
         _userManager = userManager; // Assigns user manager.
+        _fileStorageService = fileStorageService; // Assigns file storage service.
     }
 
     public async Task<IEnumerable<CustomerDto>> GetAllCustomersAsync() // Gets customer list.
@@ -45,48 +49,84 @@ public sealed class CustomerService : ICustomerService // Implements customer se
             NormalizeText(customer.Email), // Maps email safely.
             NormalizeOptionalText(customer.PhoneNumber), // Maps phone number.
             NormalizeOptionalText(customer.Address), // Maps address.
-            vehicles); // Maps vehicles.
+            vehicles, // Maps vehicles.
+            NormalizeOptionalText(customer.ImageUrl)); // Maps profile image.
     }
 
-    public async Task<CustomerDetailDto> UpdateAsync(string id, UpdateCustomerDto dto) // Updates customer.
+    public async Task<CustomerDetailDto> UpdateAsync(string id, UpdateCustomerDto dto, IFormFile? profileImage = null, IFormFile? image = null) // Updates customer.
     {
         var customer = await FindCustomerOrThrowAsync(id); // Loads customer user.
 
         var fullName = NormalizeRequiredText(dto.FullName, nameof(dto.FullName)); // Normalizes full name.
         var email = NormalizeRequiredText(dto.Email, nameof(dto.Email)); // Normalizes email.
         var address = NormalizeRequiredText(dto.Address, nameof(dto.Address)); // Normalizes address.
-        var phoneNumber = NormalizeOptionalText(dto.PhoneNumber); // Normalizes phone number.
+        var phoneNumber = NormalizeOptionalText(dto.PhoneNumber ?? dto.Phone); // Normalizes phone number.
+        var selectedImage = profileImage ?? image; // Selects uploaded image.
+        var oldImageUrl = customer.ImageUrl; // Keeps existing image for cleanup.
+        string? newImageUrl = null; // Tracks newly uploaded image.
 
-        if (!string.IsNullOrWhiteSpace(phoneNumber)) // Checks for duplicate phone.
+        try
         {
-            var duplicatePhoneExists = await _userManager.Users // Starts user query.
-                .AnyAsync(user => user.Id != customer.Id && user.PhoneNumber == phoneNumber); // Looks for another phone.
-
-            if (duplicatePhoneExists) // Handles duplicate phone.
+            if (!string.IsNullOrWhiteSpace(phoneNumber)) // Checks for duplicate phone.
             {
-                throw new InvalidOperationException("Phone number is already in use."); // Rejects duplicate phone.
+                var duplicatePhoneExists = await _userManager.Users // Starts user query.
+                    .AnyAsync(user => user.Id != customer.Id && user.PhoneNumber == phoneNumber); // Looks for another phone.
+
+                if (duplicatePhoneExists) // Handles duplicate phone.
+                {
+                    throw new InvalidOperationException("Phone number is already in use."); // Rejects duplicate phone.
+                }
+            }
+
+            var duplicateEmailExists = await _userManager.Users // Starts user query.
+                .AnyAsync(user => user.Id != customer.Id && user.Email == email); // Looks for another email.
+
+            if (duplicateEmailExists) // Handles duplicate email.
+            {
+                throw new InvalidOperationException("Email address is already in use."); // Rejects duplicate email.
+            }
+
+            if (selectedImage is not null) // Saves a replacement image when provided.
+            {
+                newImageUrl = await _fileStorageService.SaveFileAsync(selectedImage, "customers");
+            }
+
+            customer.FullName = fullName; // Updates full name.
+            customer.Email = email; // Updates email.
+            customer.UserName = email; // Keeps username aligned with email.
+            customer.PhoneNumber = phoneNumber; // Updates phone number.
+            customer.Address = address; // Updates address.
+
+            if (!string.IsNullOrEmpty(newImageUrl)) // Stores the new profile image.
+            {
+                customer.ImageUrl = newImageUrl;
+            }
+
+            var result = await _userManager.UpdateAsync(customer); // Persists changes.
+
+            if (!result.Succeeded) // Handles identity validation failures.
+            {
+                if (!string.IsNullOrEmpty(newImageUrl)) // Removes newly saved image on failure.
+                {
+                    _fileStorageService.DeleteFile(newImageUrl);
+                }
+
+                throw new ArgumentException(string.Join(" ", result.Errors.Select(error => error.Description))); // Raises validation error.
+            }
+
+            if (!string.IsNullOrEmpty(newImageUrl) && !string.IsNullOrEmpty(oldImageUrl)) // Removes replaced image after success.
+            {
+                _fileStorageService.DeleteFile(oldImageUrl);
             }
         }
-
-        var duplicateEmailExists = await _userManager.Users // Starts user query.
-            .AnyAsync(user => user.Id != customer.Id && user.Email == email); // Looks for another email.
-
-        if (duplicateEmailExists) // Handles duplicate email.
+        catch
         {
-            throw new InvalidOperationException("Email address is already in use."); // Rejects duplicate email.
-        }
+            if (!string.IsNullOrEmpty(newImageUrl)) // Cleans up uploaded file if something failed.
+            {
+                _fileStorageService.DeleteFile(newImageUrl);
+            }
 
-        customer.FullName = fullName; // Updates full name.
-        customer.Email = email; // Updates email.
-        customer.UserName = email; // Keeps username aligned with email.
-        customer.PhoneNumber = phoneNumber; // Updates phone number.
-        customer.Address = address; // Updates address.
-
-        var result = await _userManager.UpdateAsync(customer); // Persists changes.
-
-        if (!result.Succeeded) // Handles identity validation failures.
-        {
-            throw new ArgumentException(string.Join(" ", result.Errors.Select(error => error.Description))); // Raises validation error.
+            throw;
         }
 
         return await GetCustomerByIdAsync(customer.Id) ?? throw new InvalidOperationException("Customer could not be loaded after update.");
@@ -166,7 +206,8 @@ public sealed class CustomerService : ICustomerService // Implements customer se
             NormalizeText(customer.FullName), // Maps full name.
             NormalizeText(customer.Email), // Maps email safely.
             NormalizeOptionalText(customer.PhoneNumber), // Maps phone number.
-            NormalizeOptionalText(customer.Address)); // Maps address.
+            NormalizeOptionalText(customer.Address), // Maps address.
+            NormalizeOptionalText(customer.ImageUrl)); // Maps profile image.
     }
 
     private static bool Matches(string? value, string term) // Checks string match.

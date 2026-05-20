@@ -52,6 +52,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             .HasIndex(user => user.PhoneNumber)
             .IsUnique();
 
+        builder.Entity<ApplicationUser>()
+            .Property(user => user.ImageUrl)
+            .HasMaxLength(500);
+
         builder.Entity<InventoryItem>(entity =>
         {
             entity.ToTable("InventoryItems");

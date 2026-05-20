@@ -54,7 +54,8 @@ public class CustomerController : ControllerBase
             user.Id,
             user.FullName,
             user.Email ?? string.Empty,
-            user.PhoneNumber
+            user.PhoneNumber,
+            user.ImageUrl
         );
 
         return Ok(profile);
@@ -121,7 +122,8 @@ public class CustomerController : ControllerBase
             user.Id,
             user.FullName,
             user.Email ?? string.Empty,
-            user.PhoneNumber
+            user.PhoneNumber,
+            user.ImageUrl
         );
 
         return Ok(profile);

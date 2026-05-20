@@ -4,7 +4,8 @@ public sealed record CustomerProfileDto(
     string Id,
     string FullName,
     string Email,
-    string? PhoneNumber
+    string? PhoneNumber,
+    string? ProfileImageUrl
 );
 
 public sealed record UpdateCustomerProfileDto(
