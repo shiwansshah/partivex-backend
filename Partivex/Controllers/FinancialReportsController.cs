@@ -26,9 +26,17 @@ public sealed class FinancialReportsController : ControllerBase
         CancellationToken cancellationToken = default)
     {
         var reportDate = ParseReferenceDate(referenceDate);
-        var report = await _financialReportService.GetReportAsync(period, reportDate, cancellationToken);
 
-        return Ok(report);
+        try
+        {
+            var report = await _financialReportService.GetReportAsync(period, reportDate, cancellationToken);
+
+            return Ok(report);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return StatusCode(499);
+        }
     }
 
     private static DateOnly ParseReferenceDate(string? referenceDate)
