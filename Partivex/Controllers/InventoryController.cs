@@ -75,12 +75,6 @@ public sealed class AddStockRequest
     [Range(1, int.MaxValue)]
     public int VendorId { get; init; }
 
-    [Range(1, int.MaxValue)]
-    public int PartId { get; init; }
-
-    [Range(1, int.MaxValue)]
-    public int PurchaseQuantity { get; init; }
-
     public DateTimeOffset PurchaseDate { get; init; } = DateTimeOffset.UtcNow;
 
     [MaxLength(40)]
@@ -92,15 +86,27 @@ public sealed class AddStockRequest
     [MaxLength(500)]
     public string Remarks { get; init; } = string.Empty;
 
+    [Required]
+    [MinLength(1)]
+    public List<AddStockLineRequest> Lines { get; init; } = [];
+
     public AddStockCommand ToCommand()
     {
         return new AddStockCommand(
             VendorId,
-            PartId,
-            PurchaseQuantity,
             PurchaseDate,
             InvoiceNumber,
             ChangedBy,
-            Remarks);
+            Remarks,
+            Lines.Select(line => new AddStockLineCommand(line.PartId, line.PurchaseQuantity)).ToArray());
     }
+}
+
+public sealed class AddStockLineRequest
+{
+    [Range(1, int.MaxValue)]
+    public int PartId { get; init; }
+
+    [Range(1, int.MaxValue)]
+    public int PurchaseQuantity { get; init; }
 }

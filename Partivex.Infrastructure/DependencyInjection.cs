@@ -92,6 +92,8 @@ public static class DependencyInjection
         services.AddScoped<IStaffFeatureAccessService, StaffFeatureAccessService>();
         services.AddScoped<IStaffService, StaffService>(); // Registers staff service.
         services.AddScoped<ICustomerService, CustomerService>(); // Registers customer service.
+        services.AddScoped<ICustomerHistoryService, CustomerHistoryService>(); // Registers customer history service.
+        services.AddScoped<ICustomerReportService, CustomerReportService>(); // Registers customer report service.
         services.AddScoped<IVendorRepository, VendorRepository>();
         services.AddScoped<IFinancialReportRepository, FinancialReportRepository>();
 

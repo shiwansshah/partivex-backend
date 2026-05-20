@@ -11,8 +11,6 @@ namespace Partivex.Infrastructure.Services;
 
 public sealed class AdminDashboardService : IAdminDashboardService
 {
-    private static readonly string[] PaidStatuses = ["paid", "completed", "complete"];
-
     private readonly AppDbContext _dbContext;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ILogger<AdminDashboardService> _logger;
@@ -33,10 +31,19 @@ public sealed class AdminDashboardService : IAdminDashboardService
         {
             var staffUsers = await _userManager.GetUsersInRoleAsync(ApplicationRoles.Staff);
             var customerUsers = await _userManager.GetUsersInRoleAsync(ApplicationRoles.Customer);
+            var salesPeriodStart = new DateTimeOffset(
+                DateTimeOffset.UtcNow.Year,
+                DateTimeOffset.UtcNow.Month,
+                1,
+                0,
+                0,
+                0,
+                TimeSpan.Zero);
+            var salesPeriodEnd = salesPeriodStart.AddMonths(1);
 
             var vehicleCount = await _dbContext.Vehicles.AsNoTracking().CountAsync(cancellationToken);
-            var partSales = await GetCustomerPartSalesTotalAsync(cancellationToken);
-            var appointmentSales = await GetAppointmentSalesTotalAsync(cancellationToken);
+            var partSales = await GetCustomerPartSalesTotalAsync(salesPeriodStart, salesPeriodEnd, cancellationToken);
+            var appointmentSales = await GetAppointmentSalesTotalAsync(salesPeriodStart, salesPeriodEnd, cancellationToken);
             var totalStock = await _dbContext.Parts
                 .AsNoTracking()
                 .Where(part => part.IsActive)
@@ -65,22 +72,34 @@ public sealed class AdminDashboardService : IAdminDashboardService
         }
     }
 
-    private async Task<decimal> GetCustomerPartSalesTotalAsync(CancellationToken cancellationToken)
+    private async Task<decimal> GetCustomerPartSalesTotalAsync(
+        DateTimeOffset start,
+        DateTimeOffset end,
+        CancellationToken cancellationToken)
     {
         var total = await _dbContext.CustomerPartPurchaseInvoices
             .AsNoTracking()
-            .Where(invoice => PaidStatuses.Contains(invoice.Status.ToLower()))
+            .Where(invoice =>
+                invoice.InvoiceDate >= start &&
+                invoice.InvoiceDate < end &&
+                SalesRecognitionRules.RecognizedStatusValues.Contains(invoice.Status.ToLower()))
             .Select(invoice => (decimal?)invoice.TotalAmount)
             .SumAsync(cancellationToken);
 
         return total ?? 0m;
     }
 
-    private async Task<decimal> GetAppointmentSalesTotalAsync(CancellationToken cancellationToken)
+    private async Task<decimal> GetAppointmentSalesTotalAsync(
+        DateTimeOffset start,
+        DateTimeOffset end,
+        CancellationToken cancellationToken)
     {
         var total = await _dbContext.AppointmentInvoices
             .AsNoTracking()
-            .Where(invoice => PaidStatuses.Contains(invoice.PaymentStatus.ToLower()))
+            .Where(invoice =>
+                invoice.InvoiceDate >= start &&
+                invoice.InvoiceDate < end &&
+                SalesRecognitionRules.RecognizedStatusValues.Contains(invoice.PaymentStatus.ToLower()))
             .Select(invoice => (decimal?)invoice.Amount)
             .SumAsync(cancellationToken);
 
@@ -94,13 +113,17 @@ public sealed class AdminDashboardService : IAdminDashboardService
 
         var partSales = await _dbContext.CustomerPartPurchaseInvoices
             .AsNoTracking()
-            .Where(invoice => invoice.InvoiceDate >= start && PaidStatuses.Contains(invoice.Status.ToLower()))
+            .Where(invoice =>
+                invoice.InvoiceDate >= start &&
+                SalesRecognitionRules.RecognizedStatusValues.Contains(invoice.Status.ToLower()))
             .Select(invoice => new SalesPoint(invoice.InvoiceDate, invoice.TotalAmount))
             .ToArrayAsync(cancellationToken);
 
         var appointmentSales = await _dbContext.AppointmentInvoices
             .AsNoTracking()
-            .Where(invoice => invoice.InvoiceDate >= start && PaidStatuses.Contains(invoice.PaymentStatus.ToLower()))
+            .Where(invoice =>
+                invoice.InvoiceDate >= start &&
+                SalesRecognitionRules.RecognizedStatusValues.Contains(invoice.PaymentStatus.ToLower()))
             .Select(invoice => new SalesPoint(invoice.InvoiceDate, invoice.Amount))
             .ToArrayAsync(cancellationToken);
 

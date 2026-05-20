@@ -1,5 +1,6 @@
 .vs/
 .dotnet/
+.env
 
 # Build output
 bin/
@@ -7,3 +8,4 @@ obj/
 
 # User-specific IDE files
 *.user
+.idea/
