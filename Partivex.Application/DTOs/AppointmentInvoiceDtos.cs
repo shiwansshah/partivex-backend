@@ -61,7 +61,13 @@ public sealed record AppointmentInvoiceEmailResult(string Message, bool EmailSen
 
 public sealed record OverdueAppointmentInvoiceEmailResult(int SentCount, int SkippedCount);
 
-public sealed record SmtpSettingDto(string SenderEmail);
+public sealed record SmtpSettingDto(
+    string SenderEmail,
+    string Host,
+    int Port,
+    string Username,
+    bool EnableSsl,
+    bool HasPassword);
 
 public sealed class UpdateSmtpSettingDto
 {
@@ -69,4 +75,19 @@ public sealed class UpdateSmtpSettingDto
     [EmailAddress]
     [MaxLength(160)]
     public string SenderEmail { get; init; } = string.Empty;
+
+    [Required]
+    [MaxLength(160)]
+    public string Host { get; init; } = string.Empty;
+
+    [Range(1, 65535)]
+    public int Port { get; init; } = 587;
+
+    [MaxLength(160)]
+    public string? Username { get; init; }
+
+    [MaxLength(500)]
+    public string? Password { get; init; }
+
+    public bool EnableSsl { get; init; } = true;
 }

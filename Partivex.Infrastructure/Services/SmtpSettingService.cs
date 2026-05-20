@@ -18,7 +18,7 @@ public sealed class SmtpSettingService : ISmtpSettingService
     public async Task<SmtpSettingDto> GetAsync(CancellationToken cancellationToken = default)
     {
         var setting = await _dbContext.SmtpSettings.AsNoTracking().OrderBy(item => item.Id).FirstOrDefaultAsync(cancellationToken);
-        return new SmtpSettingDto(setting?.SenderEmail ?? string.Empty);
+        return Map(setting);
     }
 
     public async Task<SmtpSettingDto> UpdateAsync(UpdateSmtpSettingDto dto, CancellationToken cancellationToken = default)
@@ -31,9 +31,29 @@ public sealed class SmtpSettingService : ISmtpSettingService
         }
 
         setting.SenderEmail = dto.SenderEmail.Trim();
+        setting.Host = dto.Host.Trim();
+        setting.Port = dto.Port;
+        setting.Username = dto.Username?.Trim() ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(dto.Password))
+        {
+            setting.Password = dto.Password;
+        }
+
+        setting.EnableSsl = dto.EnableSsl;
         setting.UpdatedAt = DateTimeOffset.UtcNow;
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return new SmtpSettingDto(setting.SenderEmail);
+        return Map(setting);
+    }
+
+    private static SmtpSettingDto Map(SmtpSetting? setting)
+    {
+        return new SmtpSettingDto(
+            setting?.SenderEmail ?? string.Empty,
+            setting?.Host ?? string.Empty,
+            setting?.Port > 0 ? setting.Port : 587,
+            setting?.Username ?? string.Empty,
+            setting?.EnableSsl ?? true,
+            !string.IsNullOrWhiteSpace(setting?.Password));
     }
 }

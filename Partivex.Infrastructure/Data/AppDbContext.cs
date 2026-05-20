@@ -283,6 +283,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         {
             entity.ToTable("SmtpSettings");
             entity.Property(setting => setting.SenderEmail).IsRequired().HasMaxLength(160);
+            entity.Property(setting => setting.Host).IsRequired().HasMaxLength(160);
+            entity.Property(setting => setting.Username).HasMaxLength(160);
+            entity.Property(setting => setting.Password).HasMaxLength(500);
         });
 
         builder.Entity<Review>(entity =>
