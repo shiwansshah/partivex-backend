@@ -38,14 +38,17 @@ public sealed record InventoryMonitoringDto(
     IReadOnlyCollection<InventoryItemDto> Items,
     IReadOnlyCollection<InventoryStockChangeDto> RecentChanges);
 
+public sealed record AddStockLineCommand(
+    int PartId,
+    int PurchaseQuantity);
+
 public sealed record AddStockCommand(
     int VendorId,
-    int PartId,
-    int PurchaseQuantity,
     DateTimeOffset PurchaseDate,
     string InvoiceNumber,
     string ChangedBy,
-    string Remarks);
+    string Remarks,
+    IReadOnlyList<AddStockLineCommand> Lines);
 
 public sealed record InventoryError(string Code, string Description);
 

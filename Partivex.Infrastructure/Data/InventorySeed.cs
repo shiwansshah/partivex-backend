@@ -6,24 +6,25 @@ public static class InventorySeed
 {
     public static async Task SeedAsync(AppDbContext dbContext, CancellationToken cancellationToken = default)
     {
-        if (dbContext.Parts.Any() || dbContext.Vendors.Any())
+        var vendor = dbContext.Vendors.FirstOrDefault(v => v.Email == "inventory@himalauto.test");
+        if (vendor is null)
         {
-            return;
+            vendor = new Vendor
+            {
+                Name = "Himal Auto Traders",
+                ContactPerson = "Store Manager",
+                Email = "inventory@himalauto.test",
+                Phone = "+977-9800000000",
+                Address = "Kathmandu",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            dbContext.Vendors.Add(vendor);
         }
 
-        var vendor = new Vendor
-        {
-            Name = "Himal Auto Traders",
-            ContactPerson = "Store Manager",
-            Email = "inventory@himalauto.test",
-            Phone = "+977-9800000000",
-            Address = "Kathmandu",
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
-
         var now = DateTime.UtcNow;
-        var parts = new[]
+        var seedParts = new[]
         {
             new Part
             {
@@ -53,8 +54,61 @@ public static class InventorySeed
             }
         };
 
-        dbContext.Vendors.Add(vendor);
-        dbContext.Parts.AddRange(parts);
+        var existingPartCodes = dbContext.Parts
+            .Select(part => part.PartCode)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var part in seedParts.Where(part => !existingPartCodes.Contains(part.PartCode)))
+        {
+            dbContext.Parts.Add(part);
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        var activeParts = dbContext.Parts
+            .Where(part => part.IsActive)
+            .ToArray();
+
+        var inventoryItemsByPartNumber = dbContext.InventoryItems
+            .ToDictionary(item => item.PartNumber, StringComparer.OrdinalIgnoreCase);
+
+        var inventoryChanged = false;
+        foreach (var part in activeParts)
+        {
+            if (!inventoryItemsByPartNumber.TryGetValue(part.PartCode, out var inventoryItem))
+            {
+                inventoryItem = new InventoryItem
+                {
+                    Id = part.Id,
+                    PartNumber = part.PartCode,
+                    Name = part.Name,
+                    Category = part.Category,
+                    VendorName = vendor.Name,
+                    StorageLocation = "Main Store",
+                    QuantityInStock = part.CurrentStock,
+                    ReorderLevel = part.MinimumStockLevel,
+                    UnitCost = part.UnitPrice,
+                    UpdatedAt = DateTimeOffset.UtcNow
+                };
+
+                dbContext.InventoryItems.Add(inventoryItem);
+                inventoryChanged = true;
+                continue;
+            }
+
+            inventoryItem.Name = part.Name;
+            inventoryItem.Category = part.Category;
+            inventoryItem.VendorName = vendor.Name;
+            inventoryItem.QuantityInStock = part.CurrentStock;
+            inventoryItem.ReorderLevel = part.MinimumStockLevel;
+            inventoryItem.UnitCost = part.UnitPrice;
+            inventoryItem.UpdatedAt = DateTimeOffset.UtcNow;
+            inventoryChanged = true;
+        }
+
+        if (inventoryChanged)
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
     }
 }
