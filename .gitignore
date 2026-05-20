@@ -1,5 +1,6 @@
 .vs/
 .dotnet/
+.env
 
 # Build output
 bin/
