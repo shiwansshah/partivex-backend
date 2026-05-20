@@ -44,37 +44,121 @@ public sealed class CustomerReportService : ICustomerReportService
         var histories = await _dbContext.CustomerHistories
             .AsNoTracking()
             .ToListAsync();
+        var appointments = await _dbContext.Appointments
+            .AsNoTracking()
+            .ToListAsync();
+        var appointmentInvoices = await _dbContext.AppointmentInvoices
+            .AsNoTracking()
+            .ToListAsync();
+        var partPurchases = await _dbContext.CustomerPartPurchaseInvoices
+            .AsNoTracking()
+            .ToListAsync();
+        var partRequests = await _dbContext.PartRequests
+            .AsNoTracking()
+            .ToListAsync();
+        var reviews = await _dbContext.Reviews
+            .AsNoTracking()
+            .ToListAsync();
 
         var historyGroups = histories
             .GroupBy(history => history.CustomerId)
             .ToDictionary(group => group.Key, group => group.ToArray());
+        var appointmentGroups = appointments
+            .GroupBy(appointment => appointment.CustomerId)
+            .ToDictionary(group => group.Key, group => group.ToArray());
+        var appointmentInvoiceGroups = appointmentInvoices
+            .GroupBy(invoice => invoice.CustomerId)
+            .ToDictionary(group => group.Key, group => group.ToArray());
+        var partPurchaseGroups = partPurchases
+            .GroupBy(invoice => invoice.CustomerId)
+            .ToDictionary(group => group.Key, group => group.ToArray());
+        var partRequestGroups = partRequests
+            .GroupBy(request => request.CustomerId)
+            .ToDictionary(group => group.Key, group => group.ToArray());
+        var reviewGroups = reviews
+            .GroupBy(review => review.CustomerId)
+            .ToDictionary(group => group.Key, group => group.ToArray());
 
         return customers
-            .Select(customer => BuildReport(customer, historyGroups.TryGetValue(customer.Id, out var customerHistories) ? customerHistories : []))
+            .Select(customer => BuildReport(
+                customer,
+                historyGroups.TryGetValue(customer.Id, out var customerHistories) ? customerHistories : [],
+                appointmentGroups.TryGetValue(customer.Id, out var customerAppointments) ? customerAppointments : [],
+                appointmentInvoiceGroups.TryGetValue(customer.Id, out var customerAppointmentInvoices) ? customerAppointmentInvoices : [],
+                partPurchaseGroups.TryGetValue(customer.Id, out var customerPartPurchases) ? customerPartPurchases : [],
+                partRequestGroups.TryGetValue(customer.Id, out var customerPartRequests) ? customerPartRequests : [],
+                reviewGroups.TryGetValue(customer.Id, out var customerReviews) ? customerReviews : []))
             .OrderByDescending(report => report.LatestActivityDate)
             .ThenBy(report => report.FullName)
             .ToArray();
     }
 
-    private static CustomerReportDto BuildReport(ApplicationUser customer, IReadOnlyCollection<CustomerHistory> histories)
+    private static CustomerReportDto BuildReport(
+        ApplicationUser customer,
+        IReadOnlyCollection<CustomerHistory> histories,
+        IReadOnlyCollection<Appointment> appointments,
+        IReadOnlyCollection<AppointmentInvoice> appointmentInvoices,
+        IReadOnlyCollection<CustomerPartPurchaseInvoice> partPurchases,
+        IReadOnlyCollection<PartRequest> partRequests,
+        IReadOnlyCollection<Review> reviews)
     {
-        var totalAmount = histories.Sum(history => history.Amount);
+        var activeAppointments = appointments
+            .Where(appointment => appointment.Status is not (AppointmentStatus.Cancelled or AppointmentStatus.Rejected))
+            .ToArray();
+        var activePartRequests = partRequests
+            .Where(request => request.Status is not (PartRequestStatus.Cancelled or PartRequestStatus.Rejected))
+            .ToArray();
+        var manualHistoryCount = histories.Count;
+        var appointmentCount = activeAppointments.Length;
+        var partPurchaseCount = partPurchases.Count;
+        var partRequestCount = activePartRequests.Length;
+        var reviewCount = reviews.Count;
+        var totalActivityCount = manualHistoryCount + appointmentCount + partPurchaseCount + partRequestCount + reviewCount;
+        var overdueCutoff = DateTimeOffset.UtcNow.AddMonths(-1);
+
+        var totalAmount = histories.Sum(history => history.Amount)
+            + appointmentInvoices.Sum(invoice => invoice.Amount)
+            + partPurchases.Sum(invoice => invoice.TotalAmount);
+
         var pendingCreditAmount = histories
             .Where(history => history.PaymentStatus == PaymentStatus.Pending)
-            .Sum(history => history.Amount);
+            .Sum(history => history.Amount)
+            + appointmentInvoices
+                .Where(invoice => string.Equals(invoice.PaymentStatus, "Pending", StringComparison.OrdinalIgnoreCase)
+                    && invoice.InvoiceDate > overdueCutoff)
+                .Sum(invoice => invoice.Amount);
+
         var overdueCreditAmount = histories
             .Where(history => history.PaymentStatus == PaymentStatus.Overdue)
-            .Sum(history => history.Amount);
-        var latestActivityDate = histories.Count == 0
+            .Sum(history => history.Amount)
+            + appointmentInvoices
+                .Where(invoice => string.Equals(invoice.PaymentStatus, "Pending", StringComparison.OrdinalIgnoreCase)
+                    && invoice.InvoiceDate <= overdueCutoff)
+                .Sum(invoice => invoice.Amount);
+
+        var activityDates = histories.Select(history => history.HistoryDate)
+            .Concat(activeAppointments.Select(appointment => appointment.UpdatedAt.UtcDateTime))
+            .Concat(appointmentInvoices.Select(invoice => invoice.CreatedAt.UtcDateTime))
+            .Concat(partPurchases.Select(invoice => invoice.CreatedAt.UtcDateTime))
+            .Concat(activePartRequests.Select(request => request.UpdatedAt.UtcDateTime))
+            .Concat(reviews.Select(review => review.UpdatedAt.UtcDateTime))
+            .ToArray();
+
+        var latestActivityDate = activityDates.Length == 0
             ? (DateTime?)null
-            : histories.Max(history => history.HistoryDate);
+            : activityDates.Max();
 
         return new CustomerReportDto(
             customer.Id,
             NormalizeText(customer.FullName),
             NormalizeText(customer.Email),
             NormalizeOptionalText(customer.PhoneNumber),
-            histories.Count,
+            totalActivityCount,
+            manualHistoryCount,
+            appointmentCount,
+            partPurchaseCount,
+            partRequestCount,
+            reviewCount,
             totalAmount,
             pendingCreditAmount,
             overdueCreditAmount,

@@ -4,17 +4,13 @@ public class InventoryStockChange
 {
     public int Id { get; set; }
 
-    public int? InventoryItemId { get; set; }
+    public int PartId { get; set; }
 
-    public InventoryItem? InventoryItem { get; set; }
+    public Part Part { get; set; } = null!;
 
-    public int? PartId { get; set; }
+    public int VendorId { get; set; }
 
-    public Part? Part { get; set; }
-
-    public int? VendorId { get; set; }
-
-    public Vendor? Vendor { get; set; }
+    public Vendor Vendor { get; set; } = null!;
 
     public string ChangeType { get; set; } = string.Empty;
 

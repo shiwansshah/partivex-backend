@@ -79,7 +79,6 @@ public static class InventorySeed
             {
                 inventoryItem = new InventoryItem
                 {
-                    Id = part.Id,
                     PartNumber = part.PartCode,
                     Name = part.Name,
                     Category = part.Category,

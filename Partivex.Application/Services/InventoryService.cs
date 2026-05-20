@@ -111,7 +111,6 @@ public sealed class InventoryService : IInventoryService
             {
                 inventoryItem = new InventoryItem
                 {
-                    Id = part.Id,
                     PartNumber = part.PartCode,
                     Name = part.Name,
                     Category = part.Category,
@@ -254,7 +253,7 @@ public sealed class InventoryService : IInventoryService
     {
         return new InventoryStockChangeDto(
             change.Id,
-            change.PartId ?? 0,
+            change.PartId,
             change.Part?.Name ?? string.Empty,
             change.Part?.PartCode ?? string.Empty,
             change.Vendor?.Name ?? string.Empty,

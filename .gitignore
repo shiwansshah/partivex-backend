@@ -8,3 +8,4 @@ obj/
 
 # User-specific IDE files
 *.user
+.idea/

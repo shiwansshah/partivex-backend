@@ -99,7 +99,12 @@ public sealed record CustomerReportDto( // Defines customer report DTO.
     string FullName, // Carries full name.
     string Email, // Carries email.
     string? PhoneNumber, // Carries phone number.
-    int TotalHistoryCount, // Carries history count.
+    int TotalHistoryCount, // Carries total activity count for compatibility.
+    int ManualHistoryCount, // Carries manually logged history count.
+    int AppointmentCount, // Carries appointment count.
+    int PartPurchaseCount, // Carries part purchase invoice count.
+    int PartRequestCount, // Carries part request count.
+    int ReviewCount, // Carries review count.
     decimal TotalAmount, // Carries total amount.
     decimal PendingCreditAmount, // Carries pending credit.
     decimal OverdueCreditAmount, // Carries overdue credit.
