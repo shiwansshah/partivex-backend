@@ -16,8 +16,6 @@ public static class StaffFeatureKeys
 
     public const string AppointmentInvoices = "AppointmentInvoices";
 
-    public const string Notifications = "Notifications";
-
     public static IReadOnlyCollection<(string Key, string DisplayName)> All { get; } =
     [
         (CustomerManagement, "Customer Management"),
@@ -26,8 +24,7 @@ public static class StaffFeatureKeys
         (Sales, "Sales"),
         (PartRequestApprovals, "Part Request Approvals"),
         (CustomerPartInvoices, "Customer Part Invoices"),
-        (AppointmentInvoices, "Appointment Invoices"),
-        (Notifications, "Notifications")
+        (AppointmentInvoices, "Appointment Invoices")
     ];
 
     public static bool IsKnown(string featureKey)
