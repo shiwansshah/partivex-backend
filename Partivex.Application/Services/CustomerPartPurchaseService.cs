@@ -73,6 +73,34 @@ public sealed class CustomerPartPurchaseService : ICustomerPartPurchaseService
         return CustomerPartPurchaseResult<CustomerPartInvoiceDto>.Success(MapInvoice(invoice));
     }
 
+    public async Task<CustomerPartPurchaseResult<CustomerPartInvoiceDto>> UpdatePaymentStatusAsync(
+        int id,
+        string paymentStatus,
+        string? customerId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var normalizedStatus = NormalizePaymentStatus(paymentStatus);
+        if (normalizedStatus is null)
+        {
+            return CustomerPartPurchaseResult<CustomerPartInvoiceDto>.Failed(
+            [
+                new CustomerPartPurchaseError(nameof(paymentStatus), "Payment status must be Paid or Pending.")
+            ],
+            "Payment status could not be updated.");
+        }
+
+        var invoice = await _invoiceRepository.GetByIdAsync(id, cancellationToken);
+        if (invoice is null || (!string.IsNullOrWhiteSpace(customerId) && invoice.CustomerId != customerId))
+        {
+            return CustomerPartPurchaseResult<CustomerPartInvoiceDto>.NotFound("Customer part purchase invoice not found.");
+        }
+
+        invoice.Status = normalizedStatus;
+        await _invoiceRepository.SaveChangesAsync(cancellationToken);
+
+        return CustomerPartPurchaseResult<CustomerPartInvoiceDto>.Success(MapInvoice(invoice));
+    }
+
     public async Task<CustomerPartPurchaseResult<StaffPartRequestApprovalResultDto>> ApprovePartRequestAsync(
         Guid partRequestId,
         ApprovePartRequestDto request,
@@ -240,7 +268,7 @@ public sealed class CustomerPartPurchaseService : ICustomerPartPurchaseService
             CustomerEmail = customer.Email ?? string.Empty,
             InvoiceDate = DateTimeOffset.UtcNow,
             Source = source,
-            Status = "Paid",
+            Status = "Pending",
             SubTotal = subTotal,
             DiscountAmount = discountAmount,
             TotalAmount = subTotal - discountAmount,
@@ -298,6 +326,13 @@ public sealed class CustomerPartPurchaseService : ICustomerPartPurchaseService
         }
 
         return errors;
+    }
+
+    private static string? NormalizePaymentStatus(string? status)
+    {
+        if (string.Equals(status, "Paid", StringComparison.OrdinalIgnoreCase)) return "Paid";
+        if (string.Equals(status, "Pending", StringComparison.OrdinalIgnoreCase)) return "Pending";
+        return null;
     }
 
     private static CustomerPartCatalogDto MapCatalog(Part part)

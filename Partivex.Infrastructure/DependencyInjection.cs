@@ -90,6 +90,8 @@ public static class DependencyInjection
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
         services.AddScoped<IAdminDashboardService, AdminDashboardService>();
         services.AddScoped<IStaffFeatureAccessService, StaffFeatureAccessService>();
+        services.Configure<EsewaPaymentOptions>(config.GetSection(EsewaPaymentOptions.SectionName));
+        services.AddHttpClient<IEsewaPaymentService, EsewaPaymentService>();
         services.AddScoped<IStaffService, StaffService>(); // Registers staff service.
         services.AddScoped<ICustomerService, CustomerService>(); // Registers customer service.
         services.AddScoped<ICustomerHistoryService, CustomerHistoryService>(); // Registers customer history service.

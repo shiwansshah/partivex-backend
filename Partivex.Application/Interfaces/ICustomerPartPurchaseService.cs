@@ -21,6 +21,12 @@ public interface ICustomerPartPurchaseService
         string? customerId = null,
         CancellationToken cancellationToken = default);
 
+    Task<CustomerPartPurchaseResult<CustomerPartInvoiceDto>> UpdatePaymentStatusAsync(
+        int id,
+        string paymentStatus,
+        string? customerId = null,
+        CancellationToken cancellationToken = default);
+
     Task<CustomerPartPurchaseResult<StaffPartRequestApprovalResultDto>> ApprovePartRequestAsync(
         Guid partRequestId,
         ApprovePartRequestDto request,

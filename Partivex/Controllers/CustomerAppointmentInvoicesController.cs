@@ -13,10 +13,14 @@ namespace Partivex.Controllers;
 public sealed class CustomerAppointmentInvoicesController : ControllerBase
 {
     private readonly IAppointmentInvoiceService _invoiceService;
+    private readonly IEsewaPaymentService _esewaPaymentService;
 
-    public CustomerAppointmentInvoicesController(IAppointmentInvoiceService invoiceService)
+    public CustomerAppointmentInvoicesController(
+        IAppointmentInvoiceService invoiceService,
+        IEsewaPaymentService esewaPaymentService)
     {
         _invoiceService = invoiceService;
+        _esewaPaymentService = esewaPaymentService;
     }
 
     [HttpGet]
@@ -26,9 +30,9 @@ public sealed class CustomerAppointmentInvoicesController : ControllerBase
     }
 
     [HttpPatch("{id:int}/pay")]
-    public async Task<ActionResult<AppointmentInvoiceDto>> PayInvoice(int id, CancellationToken cancellationToken)
+    public async Task<ActionResult<EsewaPaymentInitiationDto>> PayInvoice(int id, CancellationToken cancellationToken)
     {
-        var result = await _invoiceService.UpdatePaymentStatusAsync(id, new UpdateAppointmentInvoicePaymentDto { PaymentStatus = "Paid" }, GetCustomerId(), cancellationToken);
+        var result = await _esewaPaymentService.CreateAppointmentInvoicePaymentAsync(id, GetCustomerId(), cancellationToken);
         if (!result.Succeeded)
         {
             return result.IsNotFound ? NotFound(new { message = "Appointment invoice not found." }) : BadRequest(new { message = result.Message ?? "Invoice could not be paid." });

@@ -18,7 +18,7 @@ public class CustomerPartPurchaseInvoice
 
     public string Source { get; set; } = string.Empty;
 
-    public string Status { get; set; } = "Paid";
+    public string Status { get; set; } = "Pending";
 
     public decimal SubTotal { get; set; }
 

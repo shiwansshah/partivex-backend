@@ -13,10 +13,14 @@ namespace Partivex.Controllers;
 public sealed class CustomerPartsController : ControllerBase
 {
     private readonly ICustomerPartPurchaseService _partPurchaseService;
+    private readonly IEsewaPaymentService _esewaPaymentService;
 
-    public CustomerPartsController(ICustomerPartPurchaseService partPurchaseService)
+    public CustomerPartsController(
+        ICustomerPartPurchaseService partPurchaseService,
+        IEsewaPaymentService esewaPaymentService)
     {
         _partPurchaseService = partPurchaseService;
+        _esewaPaymentService = esewaPaymentService;
     }
 
     [HttpGet]
@@ -32,6 +36,26 @@ public sealed class CustomerPartsController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await _partPurchaseService.CheckoutAsync(
+            GetCustomerId(),
+            request,
+            request.Items.Count == 1 ? "BuyNow" : "CartCheckout",
+            cancellationToken);
+
+        if (!result.Succeeded)
+        {
+            return ToProblem(result);
+        }
+
+        return Ok(result.Value);
+    }
+
+    [HttpPost("checkout/esewa")]
+    [Authorize(Roles = ApplicationRoles.Customer)]
+    public async Task<ActionResult<EsewaPaymentInitiationDto>> CheckoutWithEsewa(
+        CustomerPartCheckoutRequest request,
+        CancellationToken cancellationToken)
+    {
+        var result = await _esewaPaymentService.CreatePartCheckoutPaymentAsync(
             GetCustomerId(),
             request,
             request.Items.Count == 1 ? "BuyNow" : "CartCheckout",
@@ -63,6 +87,19 @@ public sealed class CustomerPartsController : ControllerBase
         }
 
         return File(result.Value!, "application/pdf", $"customer-part-invoice-{id}.pdf");
+    }
+
+    [HttpPost("invoices/{id:int}/esewa-payment")]
+    [Authorize(Roles = ApplicationRoles.Customer)]
+    public async Task<ActionResult<EsewaPaymentInitiationDto>> PayMyInvoiceWithEsewa(int id, CancellationToken cancellationToken)
+    {
+        var result = await _esewaPaymentService.CreatePartInvoicePaymentAsync(id, GetCustomerId(), cancellationToken);
+        if (!result.Succeeded)
+        {
+            return ToProblem(result);
+        }
+
+        return Ok(result.Value);
     }
 
     private string GetCustomerId()
