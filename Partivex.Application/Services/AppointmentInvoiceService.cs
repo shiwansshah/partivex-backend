@@ -1,4 +1,3 @@
-using System.Text;
 using Partivex.Application.DTOs;
 using Partivex.Application.Interfaces;
 using Partivex.Domain.Entities;
@@ -239,50 +238,27 @@ public sealed class AppointmentInvoiceService : IAppointmentInvoiceService
 
     private static byte[] BuildInvoicePdf(AppointmentInvoiceDto invoice)
     {
-        var lines = new[]
-        {
-            "Partivex",
-            $"Appointment Invoice {invoice.InvoiceNumber}",
-            $"Date: {invoice.InvoiceDate:yyyy-MM-dd HH:mm}",
-            $"Customer: {invoice.CustomerName}",
-            $"Email: {invoice.CustomerEmail}",
-            $"Service: {invoice.ServiceType}",
-            $"Vehicle: {invoice.VehicleName} - {invoice.VehicleNumber}",
-            $"Payment Status: {invoice.PaymentStatus}",
-            "",
-            $"Amount Due: NPR {invoice.Amount:0.00}",
-            $"Notes: {invoice.Notes ?? "No notes"}"
-        };
+        var vehicle = string.Join(" - ", new[] { invoice.VehicleName, invoice.VehicleNumber }.Where(value => !string.IsNullOrWhiteSpace(value)));
 
-        return SimplePdf(lines);
-    }
-
-    private static byte[] SimplePdf(IReadOnlyList<string> lines)
-    {
-        var objects = new List<string>();
-        var content = new StringBuilder("BT\n/F1 11 Tf\n50 790 Td\n14 TL\n");
-        foreach (var line in lines)
-        {
-            content.Append('(').Append(line.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)")).Append(") Tj\nT*\n");
-        }
-        content.Append("ET");
-        objects.Add("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
-        objects.Add("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
-        objects.Add("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n");
-        objects.Add("4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n");
-        objects.Add($"5 0 obj\n<< /Length {Encoding.ASCII.GetByteCount(content.ToString())} >>\nstream\n{content}\nendstream\nendobj\n");
-
-        var pdf = new StringBuilder("%PDF-1.4\n");
-        var offsets = new List<int> { 0 };
-        foreach (var obj in objects)
-        {
-            offsets.Add(Encoding.ASCII.GetByteCount(pdf.ToString()));
-            pdf.Append(obj);
-        }
-        var xrefOffset = Encoding.ASCII.GetByteCount(pdf.ToString());
-        pdf.Append("xref\n0 6\n0000000000 65535 f \n");
-        for (var i = 1; i < offsets.Count; i++) pdf.Append(offsets[i].ToString("0000000000")).Append(" 00000 n \n");
-        pdf.Append("trailer\n<< /Root 1 0 R /Size 6 >>\nstartxref\n").Append(xrefOffset).Append("\n%%EOF");
-        return Encoding.ASCII.GetBytes(pdf.ToString());
+        return ReceiptPdfBuilder.Build(new ReceiptPdfDocument(
+            "Appointment Receipt",
+            invoice.InvoiceNumber,
+            invoice.PaymentStatus,
+            invoice.InvoiceDate,
+            invoice.CustomerName,
+            invoice.CustomerEmail,
+            [
+                new ReceiptPdfDetail("Service", invoice.ServiceType),
+                new ReceiptPdfDetail("Vehicle", string.IsNullOrWhiteSpace(vehicle) ? "Not provided" : vehicle),
+                new ReceiptPdfDetail("Created by", invoice.CreatedBy)
+            ],
+            [
+                new ReceiptPdfLineItem("SERVICE", invoice.ServiceType, "1", invoice.Amount, invoice.Amount)
+            ],
+            [
+                new ReceiptPdfTotal("Subtotal", $"NPR {invoice.Amount:0.00}"),
+                new ReceiptPdfTotal("Total", $"NPR {invoice.Amount:0.00}", true)
+            ],
+            invoice.Notes));
     }
 }

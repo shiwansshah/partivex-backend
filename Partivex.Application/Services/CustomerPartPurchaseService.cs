@@ -1,4 +1,3 @@
-using System.Text;
 using Partivex.Application.DTOs;
 using Partivex.Application.Interfaces;
 using Partivex.Domain.Entities;
@@ -389,67 +388,39 @@ public sealed class CustomerPartPurchaseService : ICustomerPartPurchaseService
 
     private static byte[] BuildInvoicePdf(CustomerPartInvoiceDto invoice)
     {
-        var lines = new List<string>
+        return ReceiptPdfBuilder.Build(new ReceiptPdfDocument(
+            "Parts Purchase Receipt",
+            invoice.InvoiceNumber,
+            invoice.Status,
+            invoice.InvoiceDate,
+            invoice.CustomerName,
+            invoice.CustomerEmail,
+            [
+                new ReceiptPdfDetail("Source", FormatInvoiceSource(invoice.Source)),
+                new ReceiptPdfDetail("Created by", invoice.CreatedBy),
+                new ReceiptPdfDetail("Items", invoice.Items.Count.ToString())
+            ],
+            invoice.Items.Select(item => new ReceiptPdfLineItem(
+                item.PartCode,
+                item.PartName,
+                item.Quantity.ToString(),
+                item.UnitPrice,
+                item.SubTotal)).ToArray(),
+            [
+                new ReceiptPdfTotal("Subtotal", $"NPR {invoice.SubTotal:0.00}"),
+                new ReceiptPdfTotal("Loyalty discount", $"- NPR {invoice.DiscountAmount:0.00}"),
+                new ReceiptPdfTotal("Total", $"NPR {invoice.TotalAmount:0.00}", true)
+            ],
+            invoice.PartRequestId.HasValue ? $"Linked part request: {invoice.PartRequestId}" : null));
+    }
+
+    private static string FormatInvoiceSource(string source)
+    {
+        return source switch
         {
-            "Partivex",
-            $"Customer Part Purchase Invoice {invoice.InvoiceNumber}",
-            $"Date: {invoice.InvoiceDate:yyyy-MM-dd HH:mm}",
-            $"Customer: {invoice.CustomerName}",
-            $"Email: {invoice.CustomerEmail}",
-            $"Status: {invoice.Status}",
-            "",
-            "Items"
+            "RequestApproval" => "Staff approved request",
+            "Customer checkout" => "Customer checkout",
+            _ => source
         };
-
-        lines.AddRange(invoice.Items.Select(item =>
-            $"{item.PartCode}  {item.PartName}  Qty {item.Quantity}  Unit NPR {item.UnitPrice:0.00}  Total NPR {item.SubTotal:0.00}"));
-        lines.Add("");
-        lines.Add($"Subtotal: NPR {invoice.SubTotal:0.00}");
-        lines.Add($"Loyalty Discount: NPR {invoice.DiscountAmount:0.00}");
-        lines.Add($"Total: NPR {invoice.TotalAmount:0.00}");
-
-        return SimplePdf(lines);
-    }
-
-    private static byte[] SimplePdf(IReadOnlyList<string> lines)
-    {
-        var objects = new List<string>();
-        var content = new StringBuilder("BT\n/F1 11 Tf\n50 790 Td\n14 TL\n");
-        foreach (var line in lines)
-        {
-            content.Append('(').Append(EscapePdfText(line)).Append(") Tj\nT*\n");
-        }
-        content.Append("ET");
-
-        objects.Add("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
-        objects.Add("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
-        objects.Add("3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n");
-        objects.Add("4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n");
-        objects.Add($"5 0 obj\n<< /Length {Encoding.ASCII.GetByteCount(content.ToString())} >>\nstream\n{content}\nendstream\nendobj\n");
-
-        var pdf = new StringBuilder("%PDF-1.4\n");
-        var offsets = new List<int> { 0 };
-        foreach (var obj in objects)
-        {
-            offsets.Add(Encoding.ASCII.GetByteCount(pdf.ToString()));
-            pdf.Append(obj);
-        }
-
-        var xrefOffset = Encoding.ASCII.GetByteCount(pdf.ToString());
-        pdf.Append("xref\n0 6\n0000000000 65535 f \n");
-        for (var i = 1; i < offsets.Count; i++)
-        {
-            pdf.Append(offsets[i].ToString("0000000000")).Append(" 00000 n \n");
-        }
-        pdf.Append("trailer\n<< /Root 1 0 R /Size 6 >>\nstartxref\n")
-            .Append(xrefOffset)
-            .Append("\n%%EOF");
-
-        return Encoding.ASCII.GetBytes(pdf.ToString());
-    }
-
-    private static string EscapePdfText(string value)
-    {
-        return value.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
     }
 }
